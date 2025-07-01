@@ -35,21 +35,20 @@ pub enum ServiceModel {
     Ollama(String),
 }
 
-fn commit(cmt: Commit) -> Result<(),()> {
-    
+fn commit_ctrl(_cmt: Commit) -> Result<(),()> {
     Ok(())
 }
 
-fn readme(rmd: Readme) -> Result<(), ()> {
+fn create_readme(_rmd: Readme) -> Result<(), ()> {
     Ok(())
 }
 
 fn main() {
     let cli = Cli::parse();
-    match cli.subcommand {
-        Commands::Cmt(commit) => commit(commit),
-        Commands::Rdm(readme) => readme(readme),
-    }
+    let a = match cli.subcommand {
+        Commands::Cmt(commit) => commit_ctrl(commit),
+        Commands::Rdm(readme_f) => create_readme(readme_f),
+    };
 
     println!("Hello, world!");
 }

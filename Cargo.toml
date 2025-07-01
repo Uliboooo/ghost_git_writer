@@ -3,6 +3,7 @@ name = "ghost_git_writer"
 version = "0.1.0"
 edition = "2024"
 licence = "MIT OR Apache-2.0"
+author = ["Uliboooo", "uliboulibo@gmail.com"]
 
 [dependencies]
 clap = {version="4.5.40", features=["derive"]}
