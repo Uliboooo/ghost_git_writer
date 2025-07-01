@@ -1,5 +1,7 @@
 # ghost writer
 
+**⚠️ beta**
+
 ## now, supported llms
 
 - [x] ollama
@@ -32,14 +34,24 @@ commited by feat(cli): add `cmt` subcommand for commit message generation   |
 
 ## options
 
-- `-y --yes`: don't confirm run git command
-- `-r --norewrite`: don't ask if rewrite.
-- `-s --servie<service-name>`: select service
-- `-m --model <model name>`: select model. **require `-s`**
+### global options
 
-`cmt` options
+- [ ] `-y --yes`: don't confirm run git command
+- [ ] `-r --no-rewrite`: don't ask if rewrite when chose n in siggest msg.
+- [ ] `-s --servie <service-name>`: select service
+    - if you don't set this op && default servie and model, return error to can't chose models.
+- [ ] `-m --model <model-name>`: select model. 
+    - **require `-s`**
 
-- `-c --no-commit`: don't `git add & commit, only show`
+### `cmt` options
+
+- [ ] `-c --no-commit`: don't `git add & commit, only show`
+- [ ] `-p --auto-push`: automacitty push to remote repo.
+    - ⚠️ it make changes to remote repo.
+
+### `rdm` options
+
+- [ ] `-b --no-backup`: don't create backup, overwrite to current README.model
 
 ## usage
 
