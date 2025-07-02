@@ -10,3 +10,5 @@ clap = {version="4.5.40", features=["derive"]}
 git2 = "0.20.2"
 ollama-rs = "0.3.2"
 tokio = {version="1.45.1", features=["rt", "rt-multi-thread"]}
+llm-api-rs = "0.1.0"
+

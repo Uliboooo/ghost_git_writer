@@ -22,23 +22,19 @@ enum Commands {
 
 #[derive(Debug, clap::Args)]
 struct Commit {
-    #[arg(short='c', long="no-commit")]
+    #[arg(short = 'c', long = "no-commit")]
     no_commit: bool,
 
-    #[arg(short='p', long="auto-push")]
+    #[arg(short = 'p', long = "auto-push")]
     auto_push: bool,
 }
 
 #[derive(Debug, clap::Args)]
-struct Readme {
-    
-}
+struct Readme {}
 
-pub enum ServiceModel {
-    Ollama(String),
-}
 
-fn commit_ctrl(_cmt: Commit) -> Result<(),()> {
+
+fn commit_ctrl(_cmt: Commit) -> Result<(), ()> {
     Ok(())
 }
 
