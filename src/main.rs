@@ -24,11 +24,14 @@ enum Commands {
 struct Commit {
     #[arg(short='c', long="no-commit")]
     no_commit: bool,
+
+    #[arg(short='p', long="auto-push")]
+    auto_push: bool,
 }
 
 #[derive(Debug, clap::Args)]
 struct Readme {
-
+    
 }
 
 pub enum ServiceModel {
@@ -45,10 +48,9 @@ fn create_readme(_rmd: Readme) -> Result<(), ()> {
 
 fn main() {
     let cli = Cli::parse();
-    let a = match cli.subcommand {
+    let _a = match cli.subcommand {
         Commands::Cmt(commit) => commit_ctrl(commit),
         Commands::Rdm(readme_f) => create_readme(readme_f),
     };
-
     println!("Hello, world!");
 }
