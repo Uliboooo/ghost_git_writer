@@ -1,4 +1,5 @@
 mod llm;
+mod config;
 
 use clap::Parser;
 use llm::ServiceModel;

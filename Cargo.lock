@@ -378,6 +378,8 @@ dependencies = [
  "git2",
  "llm-api-rs",
  "ollama-rs",
+ "serde",
+ "serde_json",
  "tokio",
 ]
 
