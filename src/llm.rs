@@ -38,9 +38,6 @@ pub enum LlmError {
     Other(LlmApiError),
 }
 
-// later, get in config file?
-const MAX_TOKENS: u32 = 8000;
-
 pub fn call_llms<T: AsRef<str>>(
     pmt: T,
     service: ServiceModel,
@@ -84,7 +81,13 @@ async fn ollama(pmt: String, model: String) -> Result<String, LlmError> {
     }
 }
 
-async fn anthopic(api_key: String, model: String, pmt: String, tmp: Option<f32>, max_tokens: Option<u32>) -> Result<String, LlmError> {
+async fn anthopic(
+    api_key: String,
+    model: String,
+    pmt: String,
+    tmp: Option<f32>,
+    max_tokens: Option<u32>,
+) -> Result<String, LlmError> {
     let client = Anthropic::new(api_key.to_string());
 
     let req = ChatCompletionRequest {
@@ -108,7 +111,13 @@ async fn anthopic(api_key: String, model: String, pmt: String, tmp: Option<f32>,
         .map_err(LlmError::Other)
 }
 
-async fn gemini(api_key: String, model: String, pmt: String, tmp: Option<f32>, max_tokens: Option<u32>) -> Result<String, LlmError> {
+async fn gemini(
+    api_key: String,
+    model: String,
+    pmt: String,
+    tmp: Option<f32>,
+    max_tokens: Option<u32>,
+) -> Result<String, LlmError> {
     let client = Gemini::new(api_key.to_string());
     let req = ChatCompletionRequest {
         model,
@@ -131,7 +140,13 @@ async fn gemini(api_key: String, model: String, pmt: String, tmp: Option<f32>, m
         .map_err(LlmError::Other)
 }
 
-async fn openai(api_key: String, model: String, pmt: String, tmp: Option<f32>, max_tokens: Option<u32>) -> Result<String, LlmError> {
+async fn openai(
+    api_key: String,
+    model: String,
+    pmt: String,
+    tmp: Option<f32>,
+    max_tokens: Option<u32>,
+) -> Result<String, LlmError> {
     let client = OpenAI::new(api_key.to_string());
     let req = ChatCompletionRequest {
         model,
@@ -154,7 +169,13 @@ async fn openai(api_key: String, model: String, pmt: String, tmp: Option<f32>, m
         .map_err(LlmError::Other)
 }
 
-async fn deep_seek(api_key: String, model: String, pmt: String, tmp: Option<f32>, max_tokens: Option<u32>) -> Result<String, LlmError> {
+async fn deep_seek(
+    api_key: String,
+    model: String,
+    pmt: String,
+    tmp: Option<f32>,
+    max_tokens: Option<u32>,
+) -> Result<String, LlmError> {
     let client = OpenAI::new(api_key.to_string());
     let req = ChatCompletionRequest {
         model,
