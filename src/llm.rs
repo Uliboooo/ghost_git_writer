@@ -27,6 +27,7 @@ impl ServiceModel {
     }
 }
 
+#[derive(Debug)]
 pub enum LlmError {
     Ollama(ollama_rs::error::OllamaError),
     Other(LlmApiError),
