@@ -45,6 +45,8 @@ pub fn call_llms<T: AsRef<str>>(
     pmt: T,
     service: ServiceModel,
     api_key: T,
+    temperature: Option<f32>,
+    max_tokens: Option<u32>,
 ) -> Result<String, LlmError> {
     let pmt = pmt.as_ref().to_string();
     let api_key = api_key.as_ref().to_string();
@@ -55,19 +57,19 @@ pub fn call_llms<T: AsRef<str>>(
         }
         ServiceModel::Anthropic(model) => {
             let rt = Runtime::new().unwrap();
-            rt.block_on(anthopic(api_key, model, pmt))
+            rt.block_on(anthopic(api_key, model, pmt, temperature, max_tokens))
         }
         ServiceModel::Deepseek(model) => {
             let rt = Runtime::new().unwrap();
-            rt.block_on(deep_seek(api_key, model, pmt))
+            rt.block_on(deep_seek(api_key, model, pmt, temperature, max_tokens))
         }
         ServiceModel::Gemini(model) => {
             let rt = Runtime::new().unwrap();
-            rt.block_on(gemini(api_key, model, pmt))
+            rt.block_on(gemini(api_key, model, pmt, temperature, max_tokens))
         }
         ServiceModel::OpenAI(model) => {
             let rt = Runtime::new().unwrap();
-            rt.block_on(openai(api_key, model, pmt))
+            rt.block_on(openai(api_key, model, pmt, temperature, max_tokens))
         }
     }
 }
@@ -82,7 +84,7 @@ async fn ollama(pmt: String, model: String) -> Result<String, LlmError> {
     }
 }
 
-async fn anthopic(api_key: String, model: String, pmt: String) -> Result<String, LlmError> {
+async fn anthopic(api_key: String, model: String, pmt: String, tmp: Option<f32>, max_tokens: Option<u32>) -> Result<String, LlmError> {
     let client = Anthropic::new(api_key.to_string());
 
     let req = ChatCompletionRequest {
@@ -91,8 +93,8 @@ async fn anthopic(api_key: String, model: String, pmt: String) -> Result<String,
             role: "user".to_string(),
             content: pmt,
         }],
-        temperature: Some(0.7),
-        max_tokens: Some(50),
+        temperature: tmp,
+        max_tokens,
     };
     client
         .chat_completion(req)
@@ -106,7 +108,7 @@ async fn anthopic(api_key: String, model: String, pmt: String) -> Result<String,
         .map_err(LlmError::Other)
 }
 
-async fn gemini(api_key: String, model: String, pmt: String) -> Result<String, LlmError> {
+async fn gemini(api_key: String, model: String, pmt: String, tmp: Option<f32>, max_tokens: Option<u32>) -> Result<String, LlmError> {
     let client = Gemini::new(api_key.to_string());
     let req = ChatCompletionRequest {
         model,
@@ -114,8 +116,8 @@ async fn gemini(api_key: String, model: String, pmt: String) -> Result<String, L
             role: "user".to_string(),
             content: pmt,
         }],
-        temperature: Some(0.7),
-        max_tokens: Some(50),
+        temperature: tmp,
+        max_tokens,
     };
     client
         .chat_completion(req)
@@ -129,7 +131,7 @@ async fn gemini(api_key: String, model: String, pmt: String) -> Result<String, L
         .map_err(LlmError::Other)
 }
 
-async fn openai(api_key: String, model: String, pmt: String) -> Result<String, LlmError> {
+async fn openai(api_key: String, model: String, pmt: String, tmp: Option<f32>, max_tokens: Option<u32>) -> Result<String, LlmError> {
     let client = OpenAI::new(api_key.to_string());
     let req = ChatCompletionRequest {
         model,
@@ -137,8 +139,8 @@ async fn openai(api_key: String, model: String, pmt: String) -> Result<String, L
             role: "user".to_string(),
             content: pmt,
         }],
-        temperature: Some(0.7),
-        max_tokens: Some(50),
+        temperature: tmp,
+        max_tokens,
     };
     client
         .chat_completion(req)
@@ -152,7 +154,7 @@ async fn openai(api_key: String, model: String, pmt: String) -> Result<String, L
         .map_err(LlmError::Other)
 }
 
-async fn deep_seek(api_key: String, model: String, pmt: String) -> Result<String, LlmError> {
+async fn deep_seek(api_key: String, model: String, pmt: String, tmp: Option<f32>, max_tokens: Option<u32>) -> Result<String, LlmError> {
     let client = OpenAI::new(api_key.to_string());
     let req = ChatCompletionRequest {
         model,
@@ -160,8 +162,8 @@ async fn deep_seek(api_key: String, model: String, pmt: String) -> Result<String
             role: "user".to_string(),
             content: pmt,
         }],
-        temperature: Some(0.7),
-        max_tokens: Some(50),
+        temperature: tmp,
+        max_tokens,
     };
     client
         .chat_completion(req)

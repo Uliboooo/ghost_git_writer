@@ -31,3 +31,4 @@ pub struct ModelInfo {
     temperature: Option<f32>,
     max_tokens: Option<u32>,
 }
+
