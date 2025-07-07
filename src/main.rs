@@ -1,6 +1,12 @@
 mod llm;
+mod config;
 
 use clap::Parser;
+use llm::ServiceModel;
+
+enum Error {
+    llm(llm::LlmError),
+}
 
 #[derive(Debug, Parser)]
 struct Cli {
@@ -22,28 +28,23 @@ enum Commands {
 
 #[derive(Debug, clap::Args)]
 struct Commit {
-    #[arg(short='c', long="no-commit")]
+    #[arg(short = 'c', long = "no-commit")]
     no_commit: bool,
 
-    #[arg(short='p', long="auto-push")]
+    #[arg(short = 'p', long = "auto-push")]
     auto_push: bool,
 }
 
 #[derive(Debug, clap::Args)]
-struct Readme {
-    
+struct Readme {}
+
+fn commit_ctrl(_cmt: Commit) -> Result<String, ()> {
+    let res = llm::call_llms("pmt", ServiceModel::new("ollama", "model_name"), "api_key");
+    todo!()
 }
 
-pub enum ServiceModel {
-    Ollama(String),
-}
-
-fn commit_ctrl(_cmt: Commit) -> Result<(),()> {
-    Ok(())
-}
-
-fn create_readme(_rmd: Readme) -> Result<(), ()> {
-    Ok(())
+fn create_readme(_rmd: Readme) -> Result<String, ()> {
+    todo!()
 }
 
 fn main() {
@@ -53,4 +54,5 @@ fn main() {
         Commands::Rdm(readme_f) => create_readme(readme_f),
     };
     println!("Hello, world!");
+    todo!()
 }
