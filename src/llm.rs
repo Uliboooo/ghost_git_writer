@@ -4,13 +4,7 @@ use llm_api_rs::{
 use ollama_rs::{Ollama, generation::completion::request::GenerationRequest};
 use tokio::runtime::Runtime;
 
-// pub enum services {
-//     Ollama,
-//     Anthropic,
-//     Deepseek,
-//     Gemini,
-//     OpenAI,
-// }
+use crate::config::{ModelInfo, Provider};
 
 pub enum ServiceModel {
     Ollama(String),
@@ -38,36 +32,20 @@ pub enum LlmError {
     Other(LlmApiError),
 }
 
-pub fn call_llms<T: AsRef<str>>(
-    pmt: T,
-    service: ServiceModel,
-    api_key: T,
-    temperature: Option<f32>,
-    max_tokens: Option<u32>,
-) -> Result<String, LlmError> {
+pub fn call_llms<T: AsRef<str>>(pmt: T, model_info: ModelInfo) -> Result<String, LlmError> {
     let pmt = pmt.as_ref().to_string();
-    let api_key = api_key.as_ref().to_string();
-    match service {
-        ServiceModel::Ollama(model) => {
-            let rt = Runtime::new().unwrap();
-            rt.block_on(ollama(pmt, model))
-        }
-        ServiceModel::Anthropic(model) => {
-            let rt = Runtime::new().unwrap();
-            rt.block_on(anthopic(api_key, model, pmt, temperature, max_tokens))
-        }
-        ServiceModel::Deepseek(model) => {
-            let rt = Runtime::new().unwrap();
-            rt.block_on(deep_seek(api_key, model, pmt, temperature, max_tokens))
-        }
-        ServiceModel::Gemini(model) => {
-            let rt = Runtime::new().unwrap();
-            rt.block_on(gemini(api_key, model, pmt, temperature, max_tokens))
-        }
-        ServiceModel::OpenAI(model) => {
-            let rt = Runtime::new().unwrap();
-            rt.block_on(openai(api_key, model, pmt, temperature, max_tokens))
-        }
+    let api_key = model_info.api_key().as_str().to_string();
+    let model = model_info.model().to_string();
+    let temperature = model_info.temperature().as_ref().map(|f| *f);
+    let max_tokens = model_info.max_tokens().as_ref().map(|f| *f);
+
+    let rt = Runtime::new().unwrap();
+    match model_info.provider() {
+        Provider::Ollama => rt.block_on(ollama(pmt, model)),
+        Provider::Anthropic => rt.block_on(anthopic(api_key, model, pmt, temperature, max_tokens)),
+        Provider::Deepseek => rt.block_on(deep_seek(api_key, model, pmt, temperature, max_tokens)),
+        Provider::Gemini => rt.block_on(gemini(api_key, model, pmt, temperature, max_tokens)),
+        Provider::OpenAI => rt.block_on(openai(api_key, model, pmt, temperature, max_tokens)),
     }
 }
 
