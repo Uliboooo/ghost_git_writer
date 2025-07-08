@@ -106,7 +106,7 @@ fn main() -> Result<(), Error> {
         },
         None => (default_model.0, default_model.1.as_str()),
     };
-    // let model = ModelConfig::new(a.0, a.1.to_string(), api_key, temperature, max_tokens, base_url)
+    let 
     // ~~~
 
     let res = match cli.subcommand {
