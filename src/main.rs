@@ -4,13 +4,14 @@ mod llm;
 mod prompt;
 
 use clap::Parser;
-use config::ModelInfo;
-use git2::{DiffOptions, Repository};
+use config::{Config, ModelConfig, Provider, Storage, storage};
+use git2::Repository;
 
 #[derive(Debug)]
 enum Error {
     llm(llm::LlmError),
     git2(git2::Error),
+    OpenSaveErr(storage::Error),
 }
 
 #[derive(Debug, Parser)]
@@ -20,6 +21,12 @@ struct Cli {
 
     #[arg(short = 'y', long = "yes")]
     yes: bool,
+
+    #[arg(short = 'p', long = "provider")]
+    provider: Option<String>,
+
+    #[arg(short = 'm', long = "model")]
+    model: Option<String>,
 
     #[command(subcommand)]
     subcommand: Commands,
@@ -51,7 +58,7 @@ struct Sum {}
 #[derive(Debug, clap::Args)]
 struct Chat {}
 
-fn commit_ctrl(_cmt: Commit, model: ModelInfo) -> Result<String, Error> {
+fn commit_ctrl(_cmt: Commit, model: ModelConfig) -> Result<String, Error> {
     // let head_commit = repo
     //     .head()
     //     .map_err(Error::git2)?
@@ -78,7 +85,7 @@ fn create_readme(_rmd: Readme) -> Result<String, Error> {
     todo!()
 }
 
-fn sum(_sum: Sum, model: ModelInfo) -> Result<String, Error> {
+fn sum(_sum: Sum, model: ModelConfig) -> Result<String, Error> {
     let diff = git::get_diff("")?;
     llm::call_llms("summarize changes", model).map_err(Error::llm)
 }
@@ -88,8 +95,22 @@ fn main() -> Result<(), Error> {
 
     let repo = Repository::open("").unwrap();
 
+    let config = config::Config::open::<Config>("").map_err(Error::OpenSaveErr)?;
+
+    // deside using model...
+    let default_model = config.llm.default_model;
+    let a = match cli.model {
+        Some(v) => match v.split_once('/') {
+            Some(vv) => (Provider::from(vv.0), vv.1),
+            None => (Provider::from(cli.provider.unwrap().as_str()), v.as_str()),
+        },
+        None => (default_model.0, default_model.1.as_str()),
+    };
+    // let model = ModelConfig::new(a.0, a.1.to_string(), api_key, temperature, max_tokens, base_url)
+    // ~~~
+
     let res = match cli.subcommand {
-        Commands::Cmt(commit) => commit_ctrl(commit, ModelInfo),
+        Commands::Cmt(commit) => commit_ctrl(commit, ModelConfig),
         Commands::Rdm(readme_f) => create_readme(readme_f),
         Commands::Sum(sum) => todo!(),
         Commands::Chat(chat) => todo!(),
