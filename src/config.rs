@@ -16,7 +16,6 @@ impl<P: AsRef<Path>> Storage<P> for Config {}
 pub type ModelName = String;
 pub type ModelInfo = (Provider, ModelName, ModelConfig);
 
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Llm {
     pub llm_models: HashMap<Provider, HashMap<String, ModelConfig>>,
@@ -25,7 +24,7 @@ pub struct Llm {
 }
 
 impl Llm {
-    pub fn search_model(&self, provider: Provider, model: &str) -> Option<&ModelConfig> {
+    fn get_config(&self, provider: Provider, model: &str) -> Option<&ModelConfig> {
         self.llm_models.get(&provider).map(|f| {
             f.get(model)
         }).flatten()

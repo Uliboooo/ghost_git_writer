@@ -10,5 +10,5 @@ pub fn cmt_msg(
         "write a git commit message for this diff. \ndiff: {}",
         diff
     ));
-    llm::call_llms(prmt, model_info).map_err(Error::llm)
+    llm::call_llms(prmt, model_info).map_err(Error::Llm)
 }

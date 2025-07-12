@@ -1,3 +1,4 @@
+
 mod config;
 mod git;
 mod llm;
@@ -9,8 +10,8 @@ use git2::Repository;
 
 #[derive(Debug)]
 enum Error {
-    Llm(llm::LlmError),
-    Git2(git2::Error),
+    llm(llm::LlmError),
+    git2(git2::Error),
     OpenSaveErr(storage::Error),
 }
 
@@ -89,7 +90,6 @@ fn main() -> Result<(), Error> {
         },
         None => (default_model.0, default_model.1.as_str()),
     };
-    let model_conf = config.
     let model: ModelInfo = (a.0, a.1, todo!()); // todo is model config(get from config mod)
     // ~~~
 
