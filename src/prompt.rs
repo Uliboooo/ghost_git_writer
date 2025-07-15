@@ -1,10 +1,10 @@
-use crate::{Error, config::ModelConfig, llm};
+use crate::{config::ModelInfo, llm, Error};
 
 /// if prompt is None, use default prompt.
 pub fn cmt_msg(
     diff: String,
     prompt: Option<String>,
-    model_info: ModelConfig,
+    model_info: &ModelInfo,
 ) -> Result<String, Error> {
     let prmt = prompt.unwrap_or(format!(
         "write a git commit message for this diff. \ndiff: {}",

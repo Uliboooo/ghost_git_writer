@@ -4,7 +4,7 @@ use llm_api_rs::{
 use ollama_rs::{Ollama, generation::completion::request::GenerationRequest};
 use tokio::runtime::Runtime;
 
-use crate::{config::{ModelConfig, ModelInfo, Provider}, Error};
+use crate::{config::{ModelInfo, Provider}, Error};
 
 pub enum ServiceModel {
     Ollama(String),
@@ -35,10 +35,10 @@ pub enum LlmError {
     NotFoundAPIKey,
 }
 
-pub fn call_llms<T: AsRef<str>>(pmt: T, model_info: ModelInfo) -> Result<String, Error> {
+pub fn call_llms<T: AsRef<str>>(pmt: T, model_info: &ModelInfo) -> Result<String, LlmError> {
     let pmt = pmt.as_ref().to_string();
 
-    let model = model_info.1;
+    let model = model_info.1.clone();
     let api_key = model_info.2.api_key().as_ref();
     let temperature= *model_info.2.temperature();
     let max_tokens = *model_info.2.max_tokens();
@@ -46,8 +46,8 @@ pub fn call_llms<T: AsRef<str>>(pmt: T, model_info: ModelInfo) -> Result<String,
     let rt = Runtime::new().unwrap();
     match model_info.0 {
         Provider::Ollama => rt.block_on(ollama(pmt, model)),
-        other => {
-            let api_key = api_key.ok_or(LlmError::NotFoundAPIKey).map_err(Error::Llm)?;
+        ref other => {
+            let api_key = api_key.ok_or(LlmError::NotFoundAPIKey)?;
             match other {
                 Provider::Anthropic => rt.block_on(anthopic(api_key, model, pmt, temperature, max_tokens)),
                 Provider::Deepseek => rt.block_on( deep_seek(api_key, model, pmt, temperature, max_tokens)),
@@ -56,7 +56,7 @@ pub fn call_llms<T: AsRef<str>>(pmt: T, model_info: ModelInfo) -> Result<String,
                 _ => Err(LlmError::UndefinedProvider),
             }
         }
-    }.map_err(Error::Llm)
+    }
 }
 
 async fn ollama(pmt: String, model: String) -> Result<String, LlmError> {

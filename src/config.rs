@@ -13,25 +13,38 @@ pub struct Config {
 
 impl<P: AsRef<Path>> Storage<P> for Config {}
 
+impl Config {
+    pub fn get_config(&self, prov: &Provider, model: &str) -> Option<ModelConfig> {
+        self.llm.get_config(prov, model)
+    }
+
+    pub fn get_default_model(&self) -> Option<&(Provider, String)> {
+        self.llm.get_default()
+    }
+}
+
 pub type ModelName = String;
 pub type ModelInfo = (Provider, ModelName, ModelConfig);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Llm {
     pub llm_models: HashMap<Provider, HashMap<String, ModelConfig>>,
-    ///                           👇model name
-    pub default_model: (Provider, String, ModelConfig),
+    pub default_model: Option<(Provider, ModelName)>,
+    
 }
 
 impl Llm {
-    fn get_config(&self, provider: Provider, model: &str) -> Option<&ModelConfig> {
-        self.llm_models.get(&provider).map(|f| {
-            f.get(model)
+    fn get_default(&self) -> Option<&(Provider, String)> {
+        self.default_model.as_ref()
+    }
+    fn get_config(&self, provider: &Provider, model: &str) -> Option<ModelConfig> {
+        self.llm_models.get(provider).map(|f| {
+            f.get(model).cloned()
         }).flatten()
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Getters, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Getters, PartialEq, Clone)]
 pub struct ModelConfig {
     // model: String,
     api_key: Option<String>,
@@ -58,7 +71,7 @@ impl ModelConfig {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
 pub enum Provider {
     Ollama,
     Anthropic,
