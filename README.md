@@ -16,6 +16,14 @@ ggw -y -model gemini/gemini-2.0-flash cmt
 # ⚠️ `-y` flag is used to bypass additional confirmation prompts.)
 ```
 
+## out exmaples
+
+```
+*  <6353330> 2025-07-16 [uliboooo]  (HEAD -> develop) fix: Remove duplicate println and fix typo in prompt
+*  <a07f22f> 2025-07-16 [uliboooo]  feat: add auto commit option and yes option
+*  <272de26> 2025-07-16 [uliboooo]  docs: Improve commit message generation prompt
+```
+
 ## supported llm
 
 [impl][test]
