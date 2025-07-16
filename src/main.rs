@@ -40,6 +40,8 @@ impl Display for Error {
 }
 
 #[derive(Debug, Parser, Clone)]
+#[command(name = "ggw")]
+#[command(about = "this cli create a git commit msg by llm")]
 struct Cli {
     #[arg(short = 'y', long = "yes")]
     yes: bool,
@@ -142,8 +144,8 @@ fn commit_from_gitdiff<T: AsRef<Path>, U: AsRef<str>>(
     // options: (&Cli, &Commit),
     // ⚠️configとかにまとめるかも
     // 拡張性が低い
-    auto_commit: bool,
-    yes_option: bool,
+    // auto_commit: bool,
+    // yes_option: bool,
 ) -> Result<String, Error> {
     let git_diff = git::get_diff(project_path)?;
     let commit_msg =
@@ -193,8 +195,8 @@ fn main() -> Result<(), Error> {
                 &path,
                 use_model,
                 resolved_api_key,
-                commit.auto_commit,
-                cli.yes,
+                // commit.auto_commit,
+                // cli.yes,
             )?;
             println!("created msg:\n{msg}");
             let git_user = git::get_user_email()?;
@@ -224,8 +226,6 @@ mod test {
             &p,
             crate::Model::new("gemini", "gemini-2.0-flash"),
             Some(a),
-            false,
-            false,
         );
         println!("{res:?}");
     }

@@ -2,6 +2,20 @@
 
 **⚠️ beta.**
 
+## usage
+
+```bash
+# write a git commit msg for diff.
+ggw -model gemini/gemini-2.0-flash cmt
+# ask you that run git commit -m "msg"? by y / n
+
+# auto commit without asking
+ggw -model gemini/gemini-2.0-flash cmt -c
+# or
+ggw -y -model gemini/gemini-2.0-flash cmt
+# ⚠️ `-y` flag is used to bypass additional confirmation prompts.)
+```
+
 ## supported llm
 
 [impl][test]
@@ -44,18 +58,4 @@ e.g. set `GGW_GEMINI_API=AAA444KEY` in .env or shell.
 ### `cmt` options
 
 - [ ] `-c --auto-commit"`: auto run git commit without confirm and `-y` option.
-
-## usage
-
-```bash
-# write a git commit msg for diff.
-ggw -model gemini/gemini-2.0-flash cmt
-# ask you that run git commit -m "msg"? by y / n
-
-# auto commit without asking
-ggw -model gemini/gemini-2.0-flash cmt -c
-# or
-ggw -y -model gemini/gemini-2.0-flash cmt
-# ⚠️ `-y` flag is used to bypass additional confirmation prompts.)
-```
 
