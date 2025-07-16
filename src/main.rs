@@ -163,9 +163,9 @@ fn commit_from_gitdiff<T: AsRef<Path>, U: AsRef<str>>(
 fn resolve_api_key(model: &Model) -> Option<Result<String, env::VarError>> {
     match model.model_name.as_str() {
         "anthropic" => Some(env::var(ANTHROPIC_API)),
-        "deepseek" => Some(env::var(GEMINI_API)),
-        "gemini" => Some(env::var(OPENAI_API)),
-        "openai" => Some(env::var(DEEPSEEK)),
+        "deepseek" => Some(env::var(DEEPSEEK)),
+        "gemini" => Some(env::var(GEMINI_API)),
+        "openai" => Some(env::var(OPENAI_API)),
         _ => None,
     }
 }
