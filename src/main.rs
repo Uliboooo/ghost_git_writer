@@ -136,7 +136,7 @@ impl TryFrom<Cli> for Model {
 // }
 
 fn commit_from_gitdiff<T: AsRef<Path>, U: AsRef<str>>(
-    project_path: T,
+    project_path: &T,
     model: Model,
     api_key: Option<U>,
     // options: (&Cli, &Commit),
@@ -145,23 +145,17 @@ fn commit_from_gitdiff<T: AsRef<Path>, U: AsRef<str>>(
     auto_commit: bool,
     yes_option: bool,
 ) -> Result<String, Error> {
-    let git_diff = git::get_diff(&project_path)?;
+    let git_diff = git::get_diff(project_path)?;
     let commit_msg =
         cmt_msg::create_cmt_msg(git_diff, model, api_key.map(|f| f.as_ref().to_string()))?;
 
-    println!("created_msg:\n\n{commit_msg}");
-
-    let git_user = git::get_user_email()?;
-
-    if auto_commit || yes_option || yes_no("\n\ncontinue?(y/n)>") {
-        git::git_commit(project_path, &commit_msg, git_user.0, git_user.1)?;
-    }
+    // println!("created_msg:\n\n{commit_msg}");
 
     Ok(commit_msg)
 }
 
 fn resolve_api_key(model: &Model) -> Option<Result<String, env::VarError>> {
-    match model.model_name.as_str() {
+    match model.provider.as_str() {
         "anthropic" => Some(env::var(ANTHROPIC_API)),
         "deepseek" => Some(env::var(DEEPSEEK)),
         "gemini" => Some(env::var(GEMINI_API)),
@@ -192,16 +186,22 @@ fn main() -> Result<(), Error> {
         .map_err(Error::EnvE)?;
     let path = resolve_work_path(cli.clone())?;
 
-    let _result = match &cli.subcommand {
+    match &cli.subcommand {
         Commands::Cmt(commit) => {
-            println!("commit mode>>>\n\nread git diff...\ncreating commmit message...");
-            commit_from_gitdiff(
-                path,
+            println!("<<<commit mode>>>\n\nread git diff...\ncreating commmit message...");
+            let msg = commit_from_gitdiff(
+                &path,
                 use_model,
                 resolved_api_key,
                 commit.auto_commit,
                 cli.yes,
-            )
+            )?;
+            println!("created msg:\n{msg}");
+            let git_user = git::get_user_email()?;
+
+            if commit.auto_commit || cli.yes || yes_no("\n\ncontinue?(y/n)>") {
+                git::git_commit(path, &msg, git_user.0, git_user.1)?;
+            }
         } //     Commands::Rdm(readme) => todo!(),
           //     Commands::Sum(sum) => todo!(),
           //     Commands::Chat(chat) => todo!(),
@@ -221,7 +221,7 @@ mod test {
         let p = current_dir().unwrap();
         println!("project_path: {p:?}");
         let res = commit_from_gitdiff(
-            p,
+            &p,
             crate::Model::new("gemini", "gemini-2.0-flash"),
             Some(a),
             false,
