@@ -3,8 +3,10 @@ mod git;
 mod llm;
 
 use clap::{Parser, Subcommand};
+use get_input::yes_no;
 use std::{
-    env::{self, current_dir},
+    env::{self},
+    fmt::Display,
     io,
     path::{Path, PathBuf},
 };
@@ -21,7 +23,20 @@ pub enum Error {
     EnvE(env::VarError),
     FailedParseCli,
     IoE(io::Error),
-    FileNotFound,
+    NotFoundFile,
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::GitE(e) => write!(f, "git error: {e}"),
+            Error::Llm(e) => write!(f, "llm error: {e}"),
+            Error::EnvE(e) => write!(f, "enviroment var error: {e}"),
+            Error::FailedParseCli => write!(f, "failed parse cli"),
+            Error::IoE(e) => write!(f, "io error: {e}"),
+            Error::NotFoundFile => write!(f, "not found file"),
+        }
+    }
 }
 
 #[derive(Debug, Parser, Clone)]
@@ -131,17 +146,18 @@ fn commit_from_gitdiff<T: AsRef<Path>, U: AsRef<str>>(
     yes_option: bool,
 ) -> Result<String, Error> {
     let git_diff = git::get_diff(&project_path)?;
-    let msg = cmt_msg::create_cmt_msg(git_diff, model, api_key.map(|f| f.as_ref().to_string()))?;
+    let commit_msg =
+        cmt_msg::create_cmt_msg(git_diff, model, api_key.map(|f| f.as_ref().to_string()))?;
 
-    println!("created_msg: {msg}");
+    println!("created_msg:\n\n{commit_msg}");
 
     let git_user = git::get_user_email()?;
 
-    if auto_commit || yes_option || get_input::yes_no(format!("cmt: {}\ncontinue?(y/n)", &msg)) {
-        git::git_commit(project_path, &msg, git_user.0, git_user.1)?;
+    if auto_commit || yes_option || yes_no("\n\ncontinue?(y/n)>") {
+        git::git_commit(project_path, &commit_msg, git_user.0, git_user.1)?;
     }
 
-    Ok(msg)
+    Ok(commit_msg)
 }
 
 fn resolve_api_key(model: &Model) -> Option<Result<String, env::VarError>> {
@@ -161,7 +177,7 @@ fn resolve_work_path(cli: Cli) -> Result<PathBuf, Error> {
     };
 
     if !p.exists() {
-        Err(Error::FileNotFound)
+        Err(Error::NotFoundFile)
     } else {
         Ok(p)
     }
@@ -177,8 +193,15 @@ fn main() -> Result<(), Error> {
     let path = resolve_work_path(cli.clone())?;
 
     let _result = match &cli.subcommand {
-        Commands::Cmt(_commit) => {
-            commit_from_gitdiff(path, use_model, resolved_api_key, false, false)
+        Commands::Cmt(commit) => {
+            println!("commit mode>>>\n\nread git diff...\ncreating commmit message...");
+            commit_from_gitdiff(
+                path,
+                use_model,
+                resolved_api_key,
+                commit.auto_commit,
+                cli.yes,
+            )
         } //     Commands::Rdm(readme) => todo!(),
           //     Commands::Sum(sum) => todo!(),
           //     Commands::Chat(chat) => todo!(),

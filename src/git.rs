@@ -30,8 +30,6 @@ pub fn git_commit<P: AsRef<Path>, M: AsRef<str>, T: AsRef<str>>(
     name: T,
     email: T,
 ) -> Result<(), Error> {
-    // let name_email = get_user_email()?;
-
     let repo = Repository::open(path).map_err(Error::GitE)?;
     let mut index = repo.index().map_err(Error::GitE)?;
     index
@@ -73,12 +71,12 @@ pub fn get_user_email() -> Result<(String, String), Error> {
 
 #[cfg(test)]
 mod tests {
-    use std::{env, path::PathBuf};
+    use std::env;
 
     use crate::git::{self, get_user_email};
 
     #[test]
-    fn g() {
+    fn test_git_commit() {
         let path = env::current_dir().unwrap();
         let sig = get_user_email().unwrap();
         let res = git::git_commit(path, &"test", sig.0, sig.1);

@@ -12,6 +12,17 @@ pub enum LlmError {
     NotFoundAPIKey,
 }
 
+impl std::fmt::Display for LlmError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LlmError::Ollama(e) => write!(f, "Ollama error: {e}"),
+            LlmError::Other(e) => write!(f, "Other error: {e}"),
+            LlmError::UndefinedProvider => write!(f, "Undefined LLM provider"),
+            LlmError::NotFoundAPIKey => write!(f, "API key not found"),
+        }
+    }
+}
+
 pub fn call_llm<T: AsRef<str>>(
     pmt: T,
     provider: T,
@@ -205,6 +216,6 @@ mod tests {
             None,
         ));
 
-        println!("{result:?}");
+        println!("\n\nresult\n{result:?}");
     }
 }

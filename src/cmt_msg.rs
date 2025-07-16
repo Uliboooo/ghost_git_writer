@@ -41,9 +41,4 @@ mod tests {
         println!(":{res:?}");
         assert!(res.is_ok());
     }
-
-    #[test]
-    fn get_pa() {
-        eprintln!("{:?}", env::current_dir().unwrap());
-    }
 }
