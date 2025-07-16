@@ -4,6 +4,29 @@ use llm_api_rs::{
 use ollama_rs::{Ollama, generation::completion::request::GenerationRequest};
 use tokio::runtime::Runtime;
 
+use crate::{config::{ModelInfo, Provider}, Error};
+
+pub enum ServiceModel {
+    Ollama(String),
+    Anthropic(String),
+    Deepseek(String),
+    Gemini(String),
+    OpenAI(String),
+}
+
+impl ServiceModel {
+    pub fn new<T: AsRef<str>>(service: T, model_name: T) -> Self {
+        match service.as_ref() {
+            "ollama" => Self::Ollama(model_name.as_ref().to_string()),
+            "anthropic" => Self::Anthropic(model_name.as_ref().to_string()),
+            "deepseek" => Self::Deepseek(model_name.as_ref().to_string()),
+            "gemini" => Self::Gemini(model_name.as_ref().to_string()),
+            "openai" => Self::OpenAI(model_name.as_ref().to_string()),
+            _ => Self::Ollama(model_name.as_ref().to_string()),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum LlmError {
     Ollama(ollama_rs::error::OllamaError),
@@ -12,35 +35,27 @@ pub enum LlmError {
     NotFoundAPIKey,
 }
 
-pub fn call_llm<T: AsRef<str>>(
-    pmt: T,
-    provider: T,
-    model: T,
-    api_key: Option<String>,
-    temperature: Option<f32>,
-    max_tokens: Option<u32>,
-) -> Result<String, LlmError> {
-    let model = model.as_ref().to_string();
+pub fn call_llms<T: AsRef<str>>(pmt: T, provider: String, ) -> Result<String, LlmError> {
     let pmt = pmt.as_ref().to_string();
-    let rt = Runtime::new().unwrap();
 
-    let api_key = match api_key {
-        Some(v) => v,
-        None => {
-            if provider.as_ref().to_lowercase() != "ollama" {
-                return Err(LlmError::NotFoundAPIKey);
-            } else {
-                String::new()
+    let model = model_info.1.clone();
+    let api_key = model_info.2.api_key().as_ref();
+    let temperature= *model_info.2.temperature();
+    let max_tokens = *model_info.2.max_tokens();
+
+    let rt = Runtime::new().unwrap();
+    match model_info.0 {
+        Provider::Ollama => rt.block_on(ollama(pmt, model)),
+        ref other => {
+            let api_key = api_key.ok_or(LlmError::NotFoundAPIKey)?;
+            match other {
+                Provider::Anthropic => rt.block_on(anthopic(api_key, model, pmt, temperature, max_tokens)),
+                Provider::Deepseek => rt.block_on( deep_seek(api_key, model, pmt, temperature, max_tokens)),
+                Provider::Gemini => rt.block_on( gemini(api_key, model, pmt, temperature, max_tokens)),
+                Provider::OpenAI => rt.block_on( openai(api_key, model, pmt, temperature, max_tokens)),
+                _ => Err(LlmError::UndefinedProvider),
             }
         }
-    };
-    match provider.as_ref().to_lowercase().as_str() {
-        "ollama" => rt.block_on(ollama(pmt, model)),
-        "anthropic" => rt.block_on(anthropic(api_key, model, pmt, temperature, max_tokens)),
-        "deepseek" => rt.block_on(deep_seek(api_key, model, pmt, temperature, max_tokens)),
-        "gemini" => rt.block_on(gemini(api_key, model, pmt, temperature, max_tokens)),
-        "openai" => rt.block_on(openai(api_key, model, pmt, temperature, max_tokens)),
-        _ => Err(LlmError::UndefinedProvider),
     }
 }
 
@@ -54,7 +69,7 @@ async fn ollama(pmt: String, model: String) -> Result<String, LlmError> {
     }
 }
 
-async fn anthropic<T: AsRef<str>>(
+async fn anthopic<T: AsRef<str>>(
     api_key: T,
     model: String,
     pmt: String,
@@ -114,7 +129,7 @@ async fn gemini<T: AsRef<str>>(
         .map_err(LlmError::Other)
 }
 
-async fn openai<T: AsRef<str>>(
+async fn openai<T: AsRef<str>> (
     api_key: T,
     model: String,
     pmt: String,
@@ -170,41 +185,4 @@ async fn deep_seek<T: AsRef<str>>(
                 .collect::<String>()
         })
         .map_err(LlmError::Other)
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::llm::{call_llm, gemini};
-    use std::env;
-    use tokio::runtime::Runtime;
-
-    #[test]
-    fn call_test() {
-        let res = call_llm(
-            "hello",
-            "gemini",
-            "gemini-2.0-flash",
-            Some(env::var("GEMINI_API_KEY").unwrap().to_string()),
-            None,
-            None,
-        );
-
-        println!("res: {res:?}");
-    }
-
-    #[test]
-    /// this is require GEMINI_API_KEY in your env.
-    fn test_gemini() {
-        let api = env::var("GEMINI_API_KEY");
-        let rt = Runtime::new().unwrap();
-        let result = rt.block_on(gemini(
-            api.unwrap(),
-            "gemini-2.0-flash".to_string(),
-            "hello".to_string(),
-            None,
-            None,
-        ));
-
-        println!("{result:?}");
-    }
 }

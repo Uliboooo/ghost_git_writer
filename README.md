@@ -2,73 +2,60 @@
 
 **⚠️ beta.**
 
-## now, supported llms
+## supported llm
 
-**Also not tested**
-
-[code][test]
+[impl][test]
 
 - [x] [ ] ollama
-- [x] [ ] openAI
-- [x] [ ] gemini
-- [x] [ ] anthopic
+- [x] [ ] anthropic
+- [x] [x] gemini
+- [x] [ ] openai
+- [x] [ ] deepseek
+
+this program get **environment variables** for api_key.
+env var name list
+
+| Provider | API Key Env Variable |
+| :---: | :---: |
+| anthropic | `GGW_ANTHROPIC_API` |
+| gemini | `GGW_GEMINI_API` |
+| openai | `GGW_OPENAI_API` |
+| deepseek | `GGW_DEEPSEEK_API` |
+
+e.g. set `GGW_GEMINI_API=AAA444KEY` in .env or shell.
 
 ## default operation
-
-```bash
-ggw cmt
--> msg: feat(cli): add `cmt` subcommand for commit message generatcmt   <---┐
--> cloud you commit by this message?(y/n)                                   |
-                                                                            |
-# if you chose `y`                                                          |
-commited by feat(cli): add `cmt` subcommand for commit message generation   |
-                                                                            |
-# if you chose `n`                                                          |
--> do you ask to rewrite?(msg/n)                                            |
--> [your rewrite prompt]                                                    |
-# loop ---->----------------->------------------->--------------------->----┘
-```
 
 ## subcommand
 
 | subcommand |      desc      |
 | :--------: | :------------: |
 |   `cmt`    | commit message |
-|   `rdm`    | write a readme |
 
 ## options
 
 ### global options
 
-- [ ] `-y --yes`: don't confirm run git command
-- [ ] `-r --no-rewrite`: don't ask if rewrite when chose n in siggest msg.
-- [ ] `-s --servie <service-name>`: select service
-  - if you don't set this op && default servie and model, return error to can't chose models.
-- [ ] `-m --model <model-name>`: select model.
-  - **require `-s`**
+- `-y --yes`: don't confirm run commands
+- `-p --provider [provider name]`: set provider
+- `-m --model [model name]`: set use model
+- `-m --model [provider/model]`: you can set provider with model in -m option
 
 ### `cmt` options
 
-- [ ] `-c --no-commit`: don't `git add & commit, only show`
-- [ ] `-p --auto-push`: automacitty push to remote repo.
-  - ⚠️ it make changes to remote repo.
-
-### `rdm` options
-
-- [ ] `-b --no-backup`: don't create backup, overwrite to current README.model
+- [ ] `-c --auto-commit"`: auto run git commit without confirm and `-y` option.
 
 ## usage
 
 ```bash
-# create commit msg. then output created msg to stdout.
-ggw cmt
--> xxx
+# write a git commit msg for diff.
+ggw -model gemini/gemini-2.0-flash cmt
+# ask you that run git commit -m "msg"? by y / n
 
-# create commit msg and automacitty `git add. && commit`
-ggw cmt -y
+# auto commit without asking
+ggw -model gemini/gemini-2.0-flash cmt -c
+# or
+ggw -y -model gemini/gemini-2.0-flash cmt
+# ⚠️ `-y` flag is used to bypass additional confirmation prompts.)
 ```
 
-## will features
-
-- [ ] rewrite features
-- [ ]
