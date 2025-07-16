@@ -1,6 +1,11 @@
 use crate::{Error, Model, llm};
 
-const GEN_MSG_PMT: &str = "You are a helpful assistant that writes concise and clear Git commit messages.\n\nGiven the following diff or description of code changes, write a Git commit message that follows these rules:\n- Use **imperative mood** (e.g., \"Add feature\", not \"Added\" or \"Adds\")\n- Keep the subject line under **50 characters**\n- Provide an optional body (if necessary), wrapped at **72 characters**\n- Focus on **what** was changed and **why**, not **how**\n\nCode changes:\n```\n[Paste your diff or a short description of the change here]\n```\n\nGenerate the Git commit message below:";
+const GEN_MSG_PMT: &str = "\
+You are an assistant that writes Git commit messages.\n\
+Given a description of code changes, output only a single-line commit message \
+in Conventional Commits format (e.g., \\\"feat:\\\", \\\"fix:\\\", \\\"docs:\\\", etc.).\n\
+Do not include any extra text, code blocks, or formatting. Only output the commit message.\n\n\
+Changes:\n[PASTE_DIFF_OR_DESCRIPTION_HERE]";
 
 pub fn create_cmt_msg<T: AsRef<str>>(
     diff: T,
