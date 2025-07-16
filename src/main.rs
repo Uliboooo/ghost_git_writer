@@ -3,7 +3,11 @@ mod git;
 mod llm;
 
 use clap::{Parser, Subcommand};
-use std::{env, path::Path};
+use std::{
+    env::{self, current_dir},
+    io,
+    path::{Path, PathBuf},
+};
 
 const ANTHROPIC_API: &str = "GGW_ANTHROPIC_API";
 const GEMINI_API: &str = "GGW_GEMINI_API";
@@ -15,21 +19,24 @@ pub enum Error {
     GitE(git2::Error),
     Llm(llm::LlmError),
     EnvE(env::VarError),
+    FailedParseCli,
+    IoE(io::Error),
+    FileNotFound,
 }
 
 #[derive(Debug, Parser, Clone)]
 struct Cli {
-    #[arg(short = 'r', long = "no-rewrite")]
-    no_rewrite: bool,
-
     #[arg(short = 'y', long = "yes")]
     yes: bool,
 
-    #[arg(short = 'p', long = "provider")]
+    #[arg(short = 's', long = "service")]
     provider: Option<String>,
 
     #[arg(short = 'm', long = "model")]
     model: Option<String>,
+
+    #[arg(short = 'p', long = "path")]
+    path: Option<String>,
 
     #[command(subcommand)]
     subcommand: Commands,
@@ -37,6 +44,7 @@ struct Cli {
 
 #[derive(Debug, Subcommand, Clone)]
 enum Commands {
+    #[clap(about = "gen commit msg and git commit")]
     Cmt(Commit),
     // Rdm(Readme),
     // Sum(Sum),
@@ -45,7 +53,7 @@ enum Commands {
 
 #[derive(Debug, clap::Args, Clone)]
 struct Commit {
-    #[arg(short = 'c', long = "auto-commit")]
+    #[arg(short = 'c', long = "auto-commit", help = "allow auto git commit")]
     auto_commit: bool,
     // #[arg(long = "push")]
     // auto_push: bool,
@@ -74,37 +82,63 @@ impl Model {
     }
 }
 
-impl From<Cli> for Model {
-    fn from(value: Cli) -> Self {
-        Self {
-            provider: value.provider.unwrap(),
-            model_name: value.model.unwrap(),
+// impl From<Cli> for Model {
+//     fn from(value: Cli) -> Self {
+//         let res = match value.model {
+//             Some(v) => match v.split_once('/') {
+//                 Some(v) => (v.0.to_string(), v.1.to_string()),
+//                 None => (value.provider.unwrap(), v.to_string()),
+//             },
+//             None => todo!(),
+//         };
+//             provider: value.provider.unwrap(),
+//             model_name: value.model.unwrap(),
+//         }
+//     }
+// }
+
+impl TryFrom<Cli> for Model {
+    type Error = Error;
+
+    fn try_from(value: Cli) -> Result<Self, Self::Error> {
+        match value.model {
+            Some(v) => match v.split_once('/') {
+                Some(v) => Ok((v.0.to_string(), v.1.to_string())),
+                None => Ok((value.provider.unwrap(), v.to_string())),
+            },
+            None => Err(Error::FailedParseCli),
         }
+        .map(|f| Model::new(f.0, f.1))
     }
 }
 
-fn create_msg<T: AsRef<str>>(
-    diff: String,
-    model: Model,
-    api_key: Option<T>,
-) -> Result<String, Error> {
-    cmt_msg::create_cmt_msg(diff, model, api_key.map(|f| f.as_ref().to_string()))
-}
+// fn create_msg<T: AsRef<str>>(
+//     diff: String,
+//     model: Model,
+//     api_key: Option<T>,
+// ) -> Result<String, Error> {
+//     cmt_msg::create_cmt_msg(diff, model, api_key.map(|f| f.as_ref().to_string()))
+// }
 
 fn commit_from_gitdiff<T: AsRef<Path>, U: AsRef<str>>(
     project_path: T,
     model: Model,
     api_key: Option<U>,
-    options: (&Cli, &Commit),
+    // options: (&Cli, &Commit),
+    // ⚠️configとかにまとめるかも
+    // 拡張性が低い
+    auto_commit: bool,
+    yes_option: bool,
 ) -> Result<String, Error> {
     let git_diff = git::get_diff(&project_path)?;
-    let msg = create_msg(git_diff, model, api_key)?;
+    let msg = cmt_msg::create_cmt_msg(git_diff, model, api_key.map(|f| f.as_ref().to_string()))?;
 
-    if options.1.auto_commit
-        || options.0.yes
-        || get_input::yes_no(format!("cmt: {}\ncontinue?(y/n)", &msg))
-    {
-        git::git_commit(project_path, &msg)?;
+    println!("created_msg: {msg}");
+
+    let git_user = git::get_user_email()?;
+
+    if auto_commit || yes_option || get_input::yes_no(format!("cmt: {}\ncontinue?(y/n)", &msg)) {
+        git::git_commit(project_path, &msg, git_user.0, git_user.1)?;
     }
 
     Ok(msg)
@@ -120,20 +154,56 @@ fn resolve_api_key(model: &Model) -> Option<Result<String, env::VarError>> {
     }
 }
 
+fn resolve_work_path(cli: Cli) -> Result<PathBuf, Error> {
+    let p = match cli.path {
+        Some(p) => PathBuf::from(p),
+        None => env::current_dir().map_err(Error::IoE)?,
+    };
+
+    if !p.exists() {
+        Err(Error::FileNotFound)
+    } else {
+        Ok(p)
+    }
+}
+
 fn main() -> Result<(), Error> {
     let cli = Cli::parse();
 
-    let use_model = Model::from(cli.clone());
+    let use_model = Model::try_from(cli.clone())?;
     let resolved_api_key = resolve_api_key(&use_model)
         .transpose()
         .map_err(Error::EnvE)?;
+    let path = resolve_work_path(cli.clone())?;
 
     let _result = match &cli.subcommand {
-        Commands::Cmt(commit) => {
-            commit_from_gitdiff("project_path", use_model, resolved_api_key, (&cli, commit))
+        Commands::Cmt(_commit) => {
+            commit_from_gitdiff(path, use_model, resolved_api_key, false, false)
         } //     Commands::Rdm(readme) => todo!(),
           //     Commands::Sum(sum) => todo!(),
           //     Commands::Chat(chat) => todo!(),
     };
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use std::env::{self, current_dir};
+
+    use crate::commit_from_gitdiff;
+
+    #[test]
+    fn cmt_test() {
+        let a = env::var("GEMINI_API_KEY").unwrap();
+        let p = current_dir().unwrap();
+        println!("project_path: {p:?}");
+        let res = commit_from_gitdiff(
+            p,
+            crate::Model::new("gemini", "gemini-2.0-flash"),
+            Some(a),
+            false,
+            false,
+        );
+        println!("{res:?}");
+    }
 }

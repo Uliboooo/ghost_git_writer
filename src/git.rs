@@ -1,8 +1,6 @@
-use std::path::Path;
-
-use git2::{DiffOptions, IndexAddOption, Repository, Signature};
-
 use crate::Error;
+use git2::{DiffOptions, IndexAddOption, Repository, Signature};
+use std::path::Path;
 
 pub fn get_diff<P: AsRef<Path>>(path: P) -> Result<String, Error> {
     let repo = Repository::open(path).map_err(Error::GitE)?;
@@ -26,13 +24,13 @@ pub fn get_diff<P: AsRef<Path>>(path: P) -> Result<String, Error> {
     Ok(pa)
 }
 
-pub fn git_commit<P: AsRef<Path>, T: AsRef<str>>(
+pub fn git_commit<P: AsRef<Path>, M: AsRef<str>, T: AsRef<str>>(
     path: P,
-    msg: &T,
-    // name: T,
-    // email: T,
+    msg: &M,
+    name: T,
+    email: T,
 ) -> Result<(), Error> {
-    let name_email = get_user_email()?;
+    // let name_email = get_user_email()?;
 
     let repo = Repository::open(path).map_err(Error::GitE)?;
     let mut index = repo.index().map_err(Error::GitE)?;
@@ -50,7 +48,7 @@ pub fn git_commit<P: AsRef<Path>, T: AsRef<str>>(
         .and_then(|h| h.resolve().ok())
         .and_then(|r| r.peel_to_commit().ok());
 
-    let sig = Signature::now(name_email.0.as_str(), name_email.1.as_str()).map_err(Error::GitE)?;
+    let sig = Signature::now(name.as_ref(), email.as_ref()).map_err(Error::GitE)?;
 
     let _commit_id = if let Some(pa) = parent_commit {
         repo.commit(Some("HEAD"), &sig, &sig, msg.as_ref(), &tree, &[&pa])
@@ -71,4 +69,19 @@ pub fn get_user_email() -> Result<(String, String), Error> {
         config.get_string("user.name").map_err(Error::GitE)?,
         config.get_string("user.email").map_err(Error::GitE)?,
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{env, path::PathBuf};
+
+    use crate::git::{self, get_user_email};
+
+    #[test]
+    fn g() {
+        let path = env::current_dir().unwrap();
+        let sig = get_user_email().unwrap();
+        let res = git::git_commit(path, &"test", sig.0, sig.1);
+        assert!(res.is_ok());
+    }
 }
