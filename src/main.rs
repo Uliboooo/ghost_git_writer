@@ -198,10 +198,10 @@ fn main() -> Result<(), Error> {
                 // commit.auto_commit,
                 // cli.yes,
             )?;
-            println!("created msg:\n{msg}");
+            println!("created msg:{msg}");
             let git_user = git::get_user_email()?;
 
-            if commit.auto_commit || cli.yes || yes_no("\n\ncontinue?(y/n)>") {
+            if commit.auto_commit || cli.yes || yes_no("\ncontinue?(y/n)>") {
                 git::git_commit(path, &msg, git_user.0, git_user.1)?;
             }
         } //     Commands::Rdm(readme) => todo!(),
