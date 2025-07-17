@@ -449,7 +449,7 @@ dependencies = [
 
 [[package]]
 name = "ghost_git_writer"
-version = "0.3.5"
+version = "0.3.6"
 dependencies = [
  "chrono",
  "clap",

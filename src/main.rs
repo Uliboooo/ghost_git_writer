@@ -14,7 +14,7 @@ use get_input::yes_no;
 use std::{
     env::{self},
     fmt::Display,
-    io,
+    fs, io,
     path::{Path, PathBuf},
 };
 use sum::summarize_diff;
@@ -33,6 +33,7 @@ pub enum Error {
     IoE(io::Error),
     NotFoundFile,
     InvalidModelFormat(String),
+    NotSettingPath,
 }
 
 impl Display for Error {
@@ -45,12 +46,17 @@ impl Display for Error {
             Error::IoE(e) => write!(f, "io error: {e}"),
             Error::NotFoundFile => write!(f, "not found file"),
             Error::InvalidModelFormat(e) => write!(f, "incalid model format {e}"),
+            Error::NotSettingPath => write!(f, "file path could not be read"),
         }
     }
 }
 
 #[derive(Debug, Parser, Clone)]
-#[command(name = "ggw", version, about = "this cli create a git commit msg by llm")]
+#[command(
+    name = "ggw",
+    version,
+    about = "this cli create a git commit msg by llm"
+)]
 struct Cli {
     #[arg(short = 'y', long = "yes")]
     yes: bool,
@@ -94,8 +100,21 @@ struct Commit {
 
 #[derive(Debug, clap::Args, Clone)]
 struct Readme {
-    #[arg(short = 's', long = "sources")]
-    source_path_list: Vec<String>,
+    #[arg(
+        short = 's',
+        long = "sources",
+        conflicts_with = "dir",
+        required_unless_present = "dir"
+    )]
+    source_path_list: Option<Vec<String>>,
+
+    #[arg(
+        short = 'd',
+        long = "directory",
+        conflicts_with = "source_path_list",
+        required_unless_present = "source_path_list"
+    )]
+    dir: Option<String>,
 
     #[arg(short = 'm', long = "allow-merge")]
     allow_merge: bool,
@@ -203,7 +222,11 @@ fn main() -> Result<(), Error> {
 
             println!("created msg:{msg}");
             let msg = if yes_no("do you edit msg?(y/n)") {
-                Input::new().with_prompt("edit").default(msg.clone()).interact_text().unwrap()
+                Input::new()
+                    .with_prompt("edit")
+                    .default(msg.clone())
+                    .interact_text()
+                    .unwrap()
             } else {
                 msg
             };
@@ -223,11 +246,26 @@ fn main() -> Result<(), Error> {
         Commands::Rdm(r) => {
             println!("<<readme mode>>> \n\nread project...\ncreating README");
 
-            let readme_s = readme::create_readme(
-                r.source_path_list.as_ref(),
-                use_model,
-                resolved_api_key,
-            )?;
+            let p = {
+                match r.source_path_list.clone() {
+                    Some(v) => v,
+                    None => match r.dir.clone() {
+                        Some(v) => {
+                            let l = fs::read_dir(v).map_err(Error::IoE)?;
+                            let mut ll = Vec::new();
+                            l.for_each(|i| {
+                                if let Ok(pp) = i {
+                                    ll.push(pp.path().to_string_lossy().to_string());
+                                }
+                            });
+                            ll
+                        }
+                        None => return Err(Error::NotSettingPath),
+                    },
+                }
+            };
+
+            let readme_s = readme::create_readme(p.as_ref(), use_model, resolved_api_key)?;
 
             let save_path = readme::find_readme(&pj_path)
                 .filter(|_| r.allow_merge)
