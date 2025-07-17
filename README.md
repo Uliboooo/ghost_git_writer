@@ -95,3 +95,5 @@ e.g. set `GGW_GEMINI_API=AAA444KEY` in .env or shell.
 - write a README
 - Summarize about diff
 
+[![made-with-Rust](https://img.shields.io/badge/Made%20with-Rust-1f425f.svg)](https://www.rust-lang.org/)
+
