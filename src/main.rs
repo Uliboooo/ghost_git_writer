@@ -1,7 +1,7 @@
 mod cmt_msg;
+mod config;
 mod git;
 mod llm;
-mod config;
 mod storage;
 
 use clap::{Parser, Subcommand};
@@ -26,6 +26,7 @@ pub enum Error {
     FailedParseCli,
     IoE(io::Error),
     NotFoundFile,
+    InvalidModelFormat(String),
 }
 
 impl Display for Error {
@@ -37,6 +38,7 @@ impl Display for Error {
             Error::FailedParseCli => write!(f, "failed parse cli"),
             Error::IoE(e) => write!(f, "io error: {e}"),
             Error::NotFoundFile => write!(f, "not found file"),
+            Error::InvalidModelFormat(e) => write!(f, "incalid model format {e}"), 
         }
     }
 }
@@ -48,11 +50,14 @@ struct Cli {
     #[arg(short = 'y', long = "yes")]
     yes: bool,
 
-    #[arg(short = 's', long = "service")]
-    provider: Option<String>,
+    // #[arg(short = 's', long = "service")]
+    // provider: Option<String>,
 
-    #[arg(short = 'm', long = "model")]
+    #[arg(short = 'm', long = "model", help="-m gemini/gemini-2.0-flash")]
     model: Option<String>,
+
+    #[arg(short = 't', long = "template")]
+    template: Option<String>,
 
     #[arg(short = 'p', long = "path")]
     path: Option<String>,
@@ -123,7 +128,7 @@ impl TryFrom<Cli> for Model {
         match value.model {
             Some(v) => match v.split_once('/') {
                 Some(v) => Ok((v.0.to_string(), v.1.to_string())),
-                None => Ok((value.provider.unwrap(), v.to_string())),
+                None => Err(Error::InvalidModelFormat(v)),
             },
             None => Err(Error::FailedParseCli),
         }
@@ -224,11 +229,7 @@ mod test {
         let a = env::var("GEMINI_API_KEY").unwrap();
         let p = current_dir().unwrap();
         println!("project_path: {p:?}");
-        let res = commit_from_gitdiff(
-            &p,
-            crate::Model::new("gemini", "gemini-2.0-flash"),
-            Some(a),
-        );
+        let res = commit_from_gitdiff(&p, crate::Model::new("gemini", "gemini-2.0-flash"), Some(a));
         println!("{res:?}");
     }
 }

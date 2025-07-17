@@ -67,8 +67,8 @@ e.g. set `GGW_GEMINI_API=AAA444KEY` in .env or shell.
 ### global options
 
 - `-y --yes`: don't confirm run commands
-- `-p --provider [provider name]`: set provider
-- `-m --model [model name]`: set use model
+- ~~`-s --service [provider name]`: set provider~~
+- ~~`-m --model [model name]`: set use model~~
 - `-m --model [provider/model]`: you can set provider with model in -m option
 
 ### `cmt` options
