@@ -93,7 +93,7 @@ struct Commit {
 
 #[derive(Debug, clap::Args, Clone)]
 struct Readme {
-    #[arg(short = 's', long = "sources")]
+    #[arg(short = 's', long = "sources", required = true)]
     source_path_list: Option<Vec<String>>,
 
     #[arg(short = 'm', long = "allow-merge")]
