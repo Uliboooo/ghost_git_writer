@@ -1,6 +1,6 @@
 # change log
 
-## 0.3.8
+## 0.4.0
 
 * feat: add feat to spin a spinner during llm processing
 
