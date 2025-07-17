@@ -6,6 +6,7 @@ mod read_codes;
 mod readme;
 mod storage;
 mod sum;
+mod cli_helper;
 
 use chrono::Local;
 use clap::{Parser, Subcommand};
