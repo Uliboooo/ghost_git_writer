@@ -1,5 +1,8 @@
 # change log
 
+## 0.3.8
+
+* feat: add feat to spin a spinner during llm processing
 
 ## 0.3.6
 

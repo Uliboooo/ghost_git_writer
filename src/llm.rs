@@ -4,6 +4,8 @@ use llm_api_rs::{
 use ollama_rs::{Ollama, generation::completion::request::GenerationRequest};
 use tokio::runtime::Runtime;
 
+use crate::cli_helper;
+
 #[derive(Debug)]
 pub enum LlmError {
     Ollama(ollama_rs::error::OllamaError),
@@ -33,7 +35,7 @@ pub fn call_llm<T: AsRef<str>>(
 ) -> Result<String, LlmError> {
     let model = model.as_ref().to_string();
     let pmt = pmt.as_ref().to_string();
-    let rt = Runtime::new().unwrap();
+    // let rt = Runtime::new().unwrap();
 
     let api_key = match api_key {
         Some(v) => v,
@@ -46,11 +48,15 @@ pub fn call_llm<T: AsRef<str>>(
         }
     };
     match provider.as_ref().to_lowercase().as_str() {
-        "ollama" => rt.block_on(ollama(pmt, model)),
-        "anthropic" => rt.block_on(anthropic(api_key, model, pmt, temperature, max_tokens)),
-        "deepseek" => rt.block_on(deep_seek(api_key, model, pmt, temperature, max_tokens)),
-        "gemini" => rt.block_on(gemini(api_key, model, pmt, temperature, max_tokens)),
-        "openai" => rt.block_on(openai(api_key, model, pmt, temperature, max_tokens)),
+        "ollama" => cli_helper::a(|| ollama(pmt, model)),
+        "anthropic" => {
+            cli_helper::a(move || anthropic(api_key, model, pmt, temperature, max_tokens))
+        }
+        "deepseek" => {
+            cli_helper::a(move || deep_seek(api_key, model, pmt, temperature, max_tokens))
+        }
+        "gemini" => cli_helper::a(move || gemini(api_key, model, pmt, temperature, max_tokens)),
+        "openai" => cli_helper::a(move || openai(api_key, model, pmt, temperature, max_tokens)),
         _ => Err(LlmError::UndefinedProvider),
     }
 }
