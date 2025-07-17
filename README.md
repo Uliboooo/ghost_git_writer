@@ -6,6 +6,8 @@
 
 ver.0.2.1
 
+![gif](./resource/wwg_demo_0_2_1.gif)
+
 https://www.youtube.com/watch?v=6l42h0nn5Sk
 
 ## usage
