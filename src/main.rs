@@ -93,8 +93,8 @@ struct Commit {
 
 #[derive(Debug, clap::Args, Clone)]
 struct Readme {
-    #[arg(short = 's', long = "sources", required = true)]
-    source_path_list: Option<Vec<String>>,
+    #[arg(short = 's', long = "sources")]
+    source_path_list: Vec<String>,
 
     #[arg(short = 'm', long = "allow-merge")]
     allow_merge: bool,
@@ -216,7 +216,7 @@ fn main() -> Result<(), Error> {
             println!("<<readme mode>>> \n\nread project...\ncreating README");
 
             let readme_s = readme::create_readme(
-                r.source_path_list.as_ref().unwrap(),
+                r.source_path_list.as_ref(),
                 use_model,
                 resolved_api_key,
             )?;
