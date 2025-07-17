@@ -2,6 +2,12 @@
 
 **⚠️ beta.**
 
+## Demo
+
+ver.0.2.1
+
+https://www.youtube.com/watch?v=6l42h0nn5Sk
+
 ## usage
 
 ```bash
