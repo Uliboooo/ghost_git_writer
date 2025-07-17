@@ -1,6 +1,8 @@
 mod cmt_msg;
 mod git;
 mod llm;
+mod config;
+mod storage;
 
 use clap::{Parser, Subcommand};
 use get_input::yes_no;
