@@ -75,3 +75,8 @@ e.g. set `GGW_GEMINI_API=AAA444KEY` in .env or shell.
 
 - [ ] `-c --auto-commit"`: auto run git commit without confirm and `-y` option.
 
+## features plan
+
+- write a README
+- Summarize about diff
+

@@ -3,6 +3,7 @@ mod config;
 mod git;
 mod llm;
 mod storage;
+mod sum;
 
 use clap::{Parser, Subcommand};
 use get_input::yes_no;
@@ -12,6 +13,7 @@ use std::{
     io,
     path::{Path, PathBuf},
 };
+use sum::summarize_diff;
 
 const ANTHROPIC_API: &str = "GGW_ANTHROPIC_API";
 const GEMINI_API: &str = "GGW_GEMINI_API";
@@ -38,7 +40,7 @@ impl Display for Error {
             Error::FailedParseCli => write!(f, "failed parse cli"),
             Error::IoE(e) => write!(f, "io error: {e}"),
             Error::NotFoundFile => write!(f, "not found file"),
-            Error::InvalidModelFormat(e) => write!(f, "incalid model format {e}"), 
+            Error::InvalidModelFormat(e) => write!(f, "incalid model format {e}"),
         }
     }
 }
@@ -52,11 +54,10 @@ struct Cli {
 
     // #[arg(short = 's', long = "service")]
     // provider: Option<String>,
-
-    #[arg(short = 'm', long = "model", help="-m gemini/gemini-2.0-flash")]
+    #[arg(short = 'm', long = "model", help = "-m gemini/gemini-2.0-flash")]
     model: Option<String>,
 
-    #[arg(short = 't', long = "template")]
+    #[arg(short = 't', long = "template", help = "use registed model on config")]
     template: Option<String>,
 
     #[arg(short = 'p', long = "path")]
@@ -68,10 +69,11 @@ struct Cli {
 
 #[derive(Debug, Subcommand, Clone)]
 enum Commands {
-    #[clap(about = "gen commit msg and git commit")]
+    #[command(name = "cmt",about = "gen commit msg and git commit")]
     Cmt(Commit),
     // Rdm(Readme),
-    // Sum(Sum),
+    #[command(name="sum", about = "out diff summary")]
+    Sum(Sum),
     // Chat(Chat),
 }
 
@@ -79,15 +81,16 @@ enum Commands {
 struct Commit {
     #[arg(short = 'c', long = "auto-commit", help = "allow auto git commit")]
     auto_commit: bool,
-    // #[arg(long = "push")]
-    // auto_push: bool,
+
+    #[arg(short = 'a', long = "cumstom-prompt", help = "add custom prompt")]
+    a: bool,
 }
 
 // #[derive(Debug, clap::Args, Clone)]
 // struct Readme {}
 
-// #[derive(Debug, clap::Args, Clone)]
-// struct Sum {}
+#[derive(Debug, clap::Args, Clone)]
+struct Sum {}
 
 // #[derive(Debug, clap::Args, Clone)]
 // struct Chat {}
@@ -106,21 +109,6 @@ impl Model {
     }
 }
 
-// impl From<Cli> for Model {
-//     fn from(value: Cli) -> Self {
-//         let res = match value.model {
-//             Some(v) => match v.split_once('/') {
-//                 Some(v) => (v.0.to_string(), v.1.to_string()),
-//                 None => (value.provider.unwrap(), v.to_string()),
-//             },
-//             None => todo!(),
-//         };
-//             provider: value.provider.unwrap(),
-//             model_name: value.model.unwrap(),
-//         }
-//     }
-// }
-
 impl TryFrom<Cli> for Model {
     type Error = Error;
 
@@ -135,14 +123,6 @@ impl TryFrom<Cli> for Model {
         .map(|f| Model::new(f.0, f.1))
     }
 }
-
-// fn create_msg<T: AsRef<str>>(
-//     diff: String,
-//     model: Model,
-//     api_key: Option<T>,
-// ) -> Result<String, Error> {
-//     cmt_msg::create_cmt_msg(diff, model, api_key.map(|f| f.as_ref().to_string()))
-// }
 
 fn commit_from_gitdiff<T: AsRef<Path>, U: AsRef<str>>(
     project_path: &T,
@@ -189,11 +169,11 @@ fn resolve_work_path(cli: Cli) -> Result<PathBuf, Error> {
 fn main() -> Result<(), Error> {
     let cli = Cli::parse();
 
+    let path = resolve_work_path(cli.clone())?;
     let use_model = Model::try_from(cli.clone())?;
     let resolved_api_key = resolve_api_key(&use_model)
         .transpose()
         .map_err(Error::EnvE)?;
-    let path = resolve_work_path(cli.clone())?;
 
     match &cli.subcommand {
         Commands::Cmt(commit) => {
@@ -211,9 +191,13 @@ fn main() -> Result<(), Error> {
             if commit.auto_commit || cli.yes || yes_no("\ncontinue?(y/n)>") {
                 git::git_commit(path, &msg, git_user.0, git_user.1)?;
             }
-        } //     Commands::Rdm(readme) => todo!(),
-          //     Commands::Sum(sum) => todo!(),
-          //     Commands::Chat(chat) => todo!(),
+        }
+        Commands::Sum(_sum) => {
+            println!("<<<sumarize mode>>> \n\nread git diff...\nsummarizing diff...");
+            let git_diff = git::get_diff(path)?;
+            let sum = summarize_diff(git_diff, use_model, resolved_api_key)?;
+            println!("summarize:\n\n{sum}");
+        }
     };
     Ok(())
 }
