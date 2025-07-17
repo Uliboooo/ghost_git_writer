@@ -271,7 +271,7 @@ fn main() -> Result<(), Error> {
                 .filter(|_| r.allow_merge)
                 .unwrap_or_else(|| {
                     let now = Local::now().format("%b-%d-%H-%M").to_string();
-                    pj_path.join(now)
+                    pj_path.join(now).with_extension("md")
                 });
 
             println!("created readme\n{readme_s}");
