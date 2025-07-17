@@ -24,6 +24,21 @@ ggw -y -model gemini/gemini-2.0-flash cmt
 # ⚠️ `-y` flag is used to bypass additional confirmation prompts.)
 ```
 
+### edit feat
+
+```zsh
+❯ ggw -m gemini/gemini-2.0-flash cmt
+<<<commit mode>>>
+
+read git diff...
+creating commmit message...
+created msg:fix: update version to 0.3.5 and dependencies
+do you edit msg?(y/n)y
+edit: feat: add edit feat when suggest llm's commnt
+
+continue?(y/n)>y
+```
+
 ## out exmaples
 
 ```
