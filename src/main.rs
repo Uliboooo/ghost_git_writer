@@ -9,6 +9,7 @@ mod sum;
 
 use chrono::Local;
 use clap::{Parser, Subcommand};
+use dialoguer::Input;
 use get_input::yes_no;
 use std::{
     env::{self},
@@ -199,7 +200,14 @@ fn main() -> Result<(), Error> {
                 // commit.auto_commit,
                 // cli.yes,
             )?;
+
             println!("created msg:{msg}");
+            let msg = if yes_no("do you edit msg?(y/n)") {
+                Input::new().with_prompt("edit").default(msg.clone()).interact_text().unwrap()
+            } else {
+                msg
+            };
+
             let git_user = git::get_user_email()?;
 
             if commit.auto_commit || cli.yes || yes_no("\ncontinue?(y/n)>") {
