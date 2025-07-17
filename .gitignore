@@ -1,3 +1,4 @@
 /target
 win_ggw.zip
 **/*.DS_Store
+./release/
