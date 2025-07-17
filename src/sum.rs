@@ -1,4 +1,4 @@
-use crate::{llm, Error, Model};
+use crate::{Error, Model, llm};
 
 const DEFAULT_PROMT: &str = "Read the following diff and summarize the changes in plain English.
 List the key modifications, what was added, removed, or modified, and briefly explain their purpose or impact if possible.

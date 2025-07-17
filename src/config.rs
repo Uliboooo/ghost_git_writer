@@ -1,6 +1,6 @@
 use crate::storage::Storage;
-use std::{collections::HashMap, path::Path};
 use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, path::Path};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
@@ -34,4 +34,3 @@ struct Model {
     temperature: Option<f32>,
     max_tokens: Option<u32>,
 }
-

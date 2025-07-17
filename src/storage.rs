@@ -14,7 +14,7 @@ pub enum Error {
     /// File found, but no contents.
     FileIsZero,
     UnInitialized(Option<io::Error>),
-    IsADirectoryError,
+    // IsADirectoryError,
     IsFile,
 }
 
@@ -31,7 +31,7 @@ impl Display for Error {
                     .map(|f| f.to_string())
                     .unwrap_or("other error".to_string())
             ),
-            Error::IsADirectoryError => write!(f, "this is a directory. sohuld be file path"),
+            // Error::IsADirectoryError => write!(f, "this is a directory. sohuld be file path"),
             Error::IsFile => write!(f, "this path is file, pls dir path."),
         }
     }
