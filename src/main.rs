@@ -1,7 +1,13 @@
 mod cmt_msg;
+mod config;
 mod git;
 mod llm;
+mod read_codes;
+mod readme;
+mod storage;
+mod sum;
 
+use chrono::Local;
 use clap::{Parser, Subcommand};
 use get_input::yes_no;
 use std::{
@@ -10,6 +16,7 @@ use std::{
     io,
     path::{Path, PathBuf},
 };
+use sum::summarize_diff;
 
 const ANTHROPIC_API: &str = "GGW_ANTHROPIC_API";
 const GEMINI_API: &str = "GGW_GEMINI_API";
@@ -24,6 +31,7 @@ pub enum Error {
     FailedParseCli,
     IoE(io::Error),
     NotFoundFile,
+    InvalidModelFormat(String),
 }
 
 impl Display for Error {
@@ -35,22 +43,24 @@ impl Display for Error {
             Error::FailedParseCli => write!(f, "failed parse cli"),
             Error::IoE(e) => write!(f, "io error: {e}"),
             Error::NotFoundFile => write!(f, "not found file"),
+            Error::InvalidModelFormat(e) => write!(f, "incalid model format {e}"),
         }
     }
 }
 
 #[derive(Debug, Parser, Clone)]
-#[command(name = "ggw")]
-#[command(about = "this cli create a git commit msg by llm")]
+#[command(name = "ggw", version, about = "this cli create a git commit msg by llm")]
 struct Cli {
     #[arg(short = 'y', long = "yes")]
     yes: bool,
 
-    #[arg(short = 's', long = "service")]
-    provider: Option<String>,
-
-    #[arg(short = 'm', long = "model")]
+    // #[arg(short = 's', long = "service")]
+    // provider: Option<String>,
+    #[arg(short = 'm', long = "model", help = "-m gemini/gemini-2.0-flash")]
     model: Option<String>,
+
+    #[arg(short = 't', long = "template", help = "use registed model on config")]
+    template: Option<String>,
 
     #[arg(short = 'p', long = "path")]
     path: Option<String>,
@@ -61,10 +71,14 @@ struct Cli {
 
 #[derive(Debug, Subcommand, Clone)]
 enum Commands {
-    #[clap(about = "gen commit msg and git commit")]
+    #[command(name = "cmt", about = "gen commit msg and git commit")]
     Cmt(Commit),
-    // Rdm(Readme),
-    // Sum(Sum),
+
+    #[command(name = "rdm", about = "create a readme")]
+    Rdm(Readme),
+
+    #[command(name = "sum", about = "out diff summary")]
+    Sum(Sum),
     // Chat(Chat),
 }
 
@@ -72,15 +86,25 @@ enum Commands {
 struct Commit {
     #[arg(short = 'c', long = "auto-commit", help = "allow auto git commit")]
     auto_commit: bool,
-    // #[arg(long = "push")]
-    // auto_push: bool,
+
+    #[arg(short = 'a', long = "cumstom-prompt", help = "add custom prompt")]
+    a: bool,
 }
 
-// #[derive(Debug, clap::Args, Clone)]
-// struct Readme {}
+#[derive(Debug, clap::Args, Clone)]
+struct Readme {
+    #[arg(short = 's', long = "sources", required = true)]
+    source_path_list: Option<Vec<String>>,
 
-// #[derive(Debug, clap::Args, Clone)]
-// struct Sum {}
+    #[arg(short = 'm', long = "allow-merge")]
+    allow_merge: bool,
+
+    #[arg(short = 'o', long = "over-write")]
+    allow_over_write: bool,
+}
+
+#[derive(Debug, clap::Args, Clone)]
+struct Sum {}
 
 // #[derive(Debug, clap::Args, Clone)]
 // struct Chat {}
@@ -99,21 +123,6 @@ impl Model {
     }
 }
 
-// impl From<Cli> for Model {
-//     fn from(value: Cli) -> Self {
-//         let res = match value.model {
-//             Some(v) => match v.split_once('/') {
-//                 Some(v) => (v.0.to_string(), v.1.to_string()),
-//                 None => (value.provider.unwrap(), v.to_string()),
-//             },
-//             None => todo!(),
-//         };
-//             provider: value.provider.unwrap(),
-//             model_name: value.model.unwrap(),
-//         }
-//     }
-// }
-
 impl TryFrom<Cli> for Model {
     type Error = Error;
 
@@ -121,21 +130,13 @@ impl TryFrom<Cli> for Model {
         match value.model {
             Some(v) => match v.split_once('/') {
                 Some(v) => Ok((v.0.to_string(), v.1.to_string())),
-                None => Ok((value.provider.unwrap(), v.to_string())),
+                None => Err(Error::InvalidModelFormat(v)),
             },
             None => Err(Error::FailedParseCli),
         }
         .map(|f| Model::new(f.0, f.1))
     }
 }
-
-// fn create_msg<T: AsRef<str>>(
-//     diff: String,
-//     model: Model,
-//     api_key: Option<T>,
-// ) -> Result<String, Error> {
-//     cmt_msg::create_cmt_msg(diff, model, api_key.map(|f| f.as_ref().to_string()))
-// }
 
 fn commit_from_gitdiff<T: AsRef<Path>, U: AsRef<str>>(
     project_path: &T,
@@ -182,17 +183,17 @@ fn resolve_work_path(cli: Cli) -> Result<PathBuf, Error> {
 fn main() -> Result<(), Error> {
     let cli = Cli::parse();
 
+    let pj_path = resolve_work_path(cli.clone())?;
     let use_model = Model::try_from(cli.clone())?;
     let resolved_api_key = resolve_api_key(&use_model)
         .transpose()
         .map_err(Error::EnvE)?;
-    let path = resolve_work_path(cli.clone())?;
 
     match &cli.subcommand {
         Commands::Cmt(commit) => {
             println!("<<<commit mode>>>\n\nread git diff...\ncreating commmit message...");
             let msg = commit_from_gitdiff(
-                &path,
+                &pj_path,
                 use_model,
                 resolved_api_key,
                 // commit.auto_commit,
@@ -202,11 +203,44 @@ fn main() -> Result<(), Error> {
             let git_user = git::get_user_email()?;
 
             if commit.auto_commit || cli.yes || yes_no("\ncontinue?(y/n)>") {
-                git::git_commit(path, &msg, git_user.0, git_user.1)?;
+                git::git_commit(pj_path, &msg, git_user.0, git_user.1)?;
             }
-        } //     Commands::Rdm(readme) => todo!(),
-          //     Commands::Sum(sum) => todo!(),
-          //     Commands::Chat(chat) => todo!(),
+        }
+        Commands::Sum(_sum) => {
+            println!("<<<sumarize mode>>> \n\nread git diff...\nsummarizing diff...");
+            let git_diff = git::get_diff(pj_path)?;
+            let sum = summarize_diff(git_diff, use_model, resolved_api_key)?;
+            println!("summarize:\n\n{sum}");
+        }
+        Commands::Rdm(r) => {
+            println!("<<readme mode>>> \n\nread project...\ncreating README");
+
+            let readme_s = readme::create_readme(
+                r.source_path_list.as_ref().unwrap(),
+                use_model,
+                resolved_api_key,
+            )?;
+
+            let save_path = readme::find_readme(&pj_path)
+                .filter(|_| r.allow_merge)
+                .unwrap_or_else(|| {
+                    let now = Local::now().format("%b-%d-%H-%M").to_string();
+                    pj_path.join(now)
+                });
+
+            println!("created readme\n{readme_s}");
+            if cli.yes || yes_no(format!("save to {}?", save_path.to_string_lossy())) {
+                let a = if r.allow_merge {
+                    readme::merge_readme(&save_path, r.allow_over_write, readme_s)
+                } else {
+                    readme::save_new_readme(&save_path, r.allow_over_write, readme_s)
+                };
+                match a {
+                    Ok(_) => println!("success! save to {}", save_path.to_string_lossy()),
+                    Err(e) => return Err(e),
+                }
+            }
+        }
     };
     Ok(())
 }
@@ -222,11 +256,7 @@ mod test {
         let a = env::var("GEMINI_API_KEY").unwrap();
         let p = current_dir().unwrap();
         println!("project_path: {p:?}");
-        let res = commit_from_gitdiff(
-            &p,
-            crate::Model::new("gemini", "gemini-2.0-flash"),
-            Some(a),
-        );
+        let res = commit_from_gitdiff(&p, crate::Model::new("gemini", "gemini-2.0-flash"), Some(a));
         println!("{res:?}");
     }
 }
