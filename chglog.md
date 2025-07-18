@@ -39,4 +39,3 @@ earer and preventing ambiguous configurations.
 - now, abolish `--servie` option. integrated to format: `-m provider/model`
 - now, abolish model format: `-s gemini -m gemini-2.0-flash` because 👆
 
-
