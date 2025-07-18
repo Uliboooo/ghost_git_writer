@@ -1,11 +1,17 @@
 use crate::{Error, Model, llm};
 
-const GEN_MSG_PMT: &str = "\
-You are an assistant that writes Git commit messages.\n\
-Given a description of code changes, output only a single-line commit message \
-in Conventional Commits format (e.g., \\\"feat:\\\", \\\"fix:\\\", \\\"docs:\\\", etc.).\n\
-Do not include any extra text, code blocks, or formatting. Only output the commit message.\n\n\
-Changes:\n[PASTE_DIFF_OR_DESCRIPTION_HERE]";
+// const GEN_MSG_PMT: &str = "\
+// You are an assistant that writes Git commit messages.\n\
+// Given a description of code changes, output only a single-line commit message \
+// in Conventional Commits format (e.g., \\\"feat:\\\", \\\"fix:\\\", \\\"docs:\\\", etc.).\n\
+// Do not include any extra text, code blocks, or formatting. Only output the commit message.\n\n\
+// Changes:\n[PASTE_DIFF_OR_DESCR";
+
+const GEN_MSG_PMT: &str = "You are an assistant that writes Git commit messages.\
+When code changes include modifications to documentation files (e.g., README.md, docs/), ignore those changes and generate the commit message based solely on source code changes.\
+Given a description of code changes, output only a single-line commit message in Conventional Commits format (e.g., \"feat:\", \"fix:\", \"docs:\", etc.).\
+Do not include any extra text, code blocks, or formatting. Only output the commit message.\
+Changes:\n";
 
 pub fn create_cmt_msg<T: AsRef<str>>(
     diff: T,
