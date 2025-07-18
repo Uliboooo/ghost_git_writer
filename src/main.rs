@@ -19,6 +19,7 @@ use std::{
     fs, io,
     path::{Path, PathBuf},
 };
+use storage::Storage;
 use sum::summarize_diff;
 
 const ANTHROPIC_API: &str = "GGW_ANTHROPIC_API";
@@ -31,11 +32,14 @@ pub enum Error {
     GitE(git2::Error),
     Llm(llm::LlmError),
     EnvE(env::VarError),
+    StrE(storage::Error),
     FailedParseCli,
     IoE(io::Error),
     NotFoundFile,
     InvalidModelFormat(String),
     NotSettingPath,
+    NotFoundHome,
+    NotFoundConfig(String),
 }
 
 impl Display for Error {
@@ -49,6 +53,9 @@ impl Display for Error {
             Error::NotFoundFile => write!(f, "not found file"),
             Error::InvalidModelFormat(e) => write!(f, "incalid model format {e}"),
             Error::NotSettingPath => write!(f, "file path could not be read"),
+            Error::NotFoundConfig(p) => write!(f, "not found config at {p}"),
+            Error::NotFoundHome => write!(f, "not found home dir in your machine"),
+            Error::StrE(error) => write!(f, "storage error: {error}"),
         }
     }
 }
@@ -68,10 +75,10 @@ struct Cli {
     #[arg(short = 'm', long = "model", help = "-m gemini/gemini-2.0-flash")]
     model: Option<String>,
 
-    #[arg(short = 't', long = "template", help = "use registed model on config")]
-    template: Option<String>,
+    #[arg(short = 'd', long = "default-model", help = "use default model")]
+    default_model: Option<String>,
 
-    #[arg(short = 'p', long = "path")]
+    #[arg(short = 'p', long = "path", help = "work path")]
     path: Option<String>,
 
     #[command(subcommand)]
@@ -200,11 +207,35 @@ fn resolve_work_path(cli: Cli) -> Result<PathBuf, Error> {
     }
 }
 
+fn resolve_config_path() -> Result<PathBuf, Error> {
+    let home_conf = home::home_dir().ok_or(Error::NotFoundHome)?;
+
+    if home_conf.join(".ggw.json").exists() {
+        Ok(home_conf.join(".ggw.json"))
+    } else if home_conf.join(".ggw").join(".ggw.conf").exists() {
+        Ok(home_conf.join(".ggw").join(".ggw.conf"))
+    } else {
+        Err(Error::NotFoundConfig("".to_string()))
+    }
+}
+
 fn main() -> Result<(), Error> {
     let cli = Cli::parse();
 
+    let _config =
+        config::Config::open::<config::Config>(resolve_config_path()?).map_err(Error::StrE)?;
+
     let pj_path = resolve_work_path(cli.clone())?;
+
+    // let use_model = if let Some(d) = cli.default_model {
+    //     config.get_default_model()
+    // } else {
+    //     let a = Model::try_from(cli.model)?;
+    //     Some(&a)
+    // };
+
     let use_model = Model::try_from(cli.clone())?;
+
     let resolved_api_key = resolve_api_key(&use_model)
         .transpose()
         .map_err(Error::EnvE)?;
