@@ -13,7 +13,7 @@ pub fn summarize_diff<T: AsRef<str>>(
     llm::call_llm(
         pmt.to_string(),
         model.provider,
-        model.model_name,
+        model.model,
         api_key.map(|f| f.as_ref().to_string()),
         None,
         None,

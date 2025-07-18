@@ -1,4 +1,4 @@
-use crate::storage::Storage;
+use crate::{Cli, Error, storage::Storage};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::Path};
 
@@ -28,9 +28,40 @@ impl Llm {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Model {
-    provider: String,
-    model: String,
-    temperature: Option<f32>,
-    max_tokens: Option<u32>,
+pub struct Model {
+    pub provider: String,
+    pub model: String,
+    pub temperature: Option<f32>,
+    pub max_tokens: Option<u32>,
+}
+
+impl Model {
+    pub fn new<T: AsRef<str>>(
+        pro: T,
+        model: T,
+        temp: Option<f32>,
+        max_tokens: Option<u32>,
+    ) -> Self {
+        Self {
+            provider: pro.as_ref().to_string(),
+            model: model.as_ref().to_string(),
+            temperature: temp,
+            max_tokens,
+        }
+    }
+}
+
+impl TryFrom<Cli> for Model {
+    type Error = Error;
+
+    fn try_from(value: Cli) -> Result<Self, Self::Error> {
+        match value.model {
+            Some(v) => match v.split_once('/') {
+                Some(v) => Ok((v.0.to_string(), v.1.to_string())),
+                None => Err(Error::InvalidModelFormat(v)),
+            },
+            None => Err(Error::FailedParseCli),
+        }
+        .map(|f| Model::new(f.0, f.1, None, None))
+    }
 }

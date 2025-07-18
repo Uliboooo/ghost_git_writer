@@ -1,3 +1,4 @@
+mod cli_helper;
 mod cmt_msg;
 mod config;
 mod git;
@@ -6,10 +7,10 @@ mod read_codes;
 mod readme;
 mod storage;
 mod sum;
-mod cli_helper;
 
 use chrono::Local;
 use clap::{Parser, Subcommand};
+use config::Model;
 use dialoguer::Input;
 use get_input::yes_no;
 use std::{
@@ -130,34 +131,34 @@ struct Sum {}
 // #[derive(Debug, clap::Args, Clone)]
 // struct Chat {}
 
-struct Model {
-    provider: String,
-    model_name: String,
-}
-
-impl Model {
-    fn new<T: AsRef<str>>(provider: T, model_name: T) -> Self {
-        Self {
-            provider: provider.as_ref().to_string(),
-            model_name: model_name.as_ref().to_string(),
-        }
-    }
-}
-
-impl TryFrom<Cli> for Model {
-    type Error = Error;
-
-    fn try_from(value: Cli) -> Result<Self, Self::Error> {
-        match value.model {
-            Some(v) => match v.split_once('/') {
-                Some(v) => Ok((v.0.to_string(), v.1.to_string())),
-                None => Err(Error::InvalidModelFormat(v)),
-            },
-            None => Err(Error::FailedParseCli),
-        }
-        .map(|f| Model::new(f.0, f.1))
-    }
-}
+// struct Model {
+//     provider: String,
+//     model_name: String,
+// }
+//
+// impl Model {
+//     fn new<T: AsRef<str>>(provider: T, model_name: T) -> Self {
+//         Self {
+//             provider: provider.as_ref().to_string(),
+//             model_name: model_name.as_ref().to_string(),
+//         }
+//     }
+// }
+//
+// impl TryFrom<Cli> for Model {
+//     type Error = Error;
+//
+//     fn try_from(value: Cli) -> Result<Self, Self::Error> {
+//         match value.model {
+//             Some(v) => match v.split_once('/') {
+//                 Some(v) => Ok((v.0.to_string(), v.1.to_string())),
+//                 None => Err(Error::InvalidModelFormat(v)),
+//             },
+//             None => Err(Error::FailedParseCli),
+//         }
+//         .map(|f| Model::new(f.0, f.1))
+//     }
+// }
 
 fn commit_from_gitdiff<T: AsRef<Path>, U: AsRef<str>>(
     project_path: &T,
@@ -172,8 +173,6 @@ fn commit_from_gitdiff<T: AsRef<Path>, U: AsRef<str>>(
     let git_diff = git::get_diff(project_path)?;
     let commit_msg =
         cmt_msg::create_cmt_msg(git_diff, model, api_key.map(|f| f.as_ref().to_string()))?;
-
-    // println!("created_msg:\n\n{commit_msg}");
 
     Ok(commit_msg)
 }
@@ -303,7 +302,11 @@ mod test {
         let a = env::var("GEMINI_API_KEY").unwrap();
         let p = current_dir().unwrap();
         println!("project_path: {p:?}");
-        let res = commit_from_gitdiff(&p, crate::Model::new("gemini", "gemini-2.0-flash"), Some(a));
+        let res = commit_from_gitdiff(
+            &p,
+            crate::Model::new("gemini", "gemini-2.0-flash", None, None),
+            Some(a),
+        );
         println!("{res:?}");
     }
 }

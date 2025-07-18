@@ -4,8 +4,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use chrono::Local;
-
 use crate::{Error, Model, llm, read_codes::load_codes};
 
 const DEFAULT_PROMT: &str =
@@ -20,8 +18,7 @@ Please read the following codebase and generate a README.md that includes:
 - License section (if available in the code)
 - Any relevant badges or links (GitHub repo, docs, etc.)
 
-Here is the project code or file list:
---- paste your code or directory structure here ---";
+Here is the project code or file list:";
 
 pub fn create_readme<T: AsRef<str>, P: AsRef<Path>>(
     files: &Vec<P>,
@@ -30,11 +27,11 @@ pub fn create_readme<T: AsRef<str>, P: AsRef<Path>>(
 ) -> Result<String, Error> {
     let code_base = load_codes(files)?;
 
-    let pmt = format!("{DEFAULT_PROMT} {}", code_base);
+    let pmt = format!("{DEFAULT_PROMT} {code_base}");
     llm::call_llm(
         pmt.to_string(),
         model.provider,
-        model.model_name,
+        model.model,
         api_key.map(|f| f.as_ref().to_string()),
         None,
         None,
@@ -79,7 +76,7 @@ pub fn save_new_readme<P: AsRef<Path>, T: AsRef<str>>(
 }
 
 pub fn find_readme<P: AsRef<Path>>(path: P) -> Option<PathBuf> {
-    fs::read_dir(path).ok()?.into_iter().find_map(|et| {
+    fs::read_dir(path).ok()?.find_map(|et| {
         let et = et.ok()?;
         if et.path().file_name().and_then(|f| f.to_str()) == Some("README.md") {
             Some(et.path())

@@ -1,6 +1,6 @@
 use std::{
     fmt::Display,
-    fs::{self, OpenOptions},
+    fs::OpenOptions,
     io::{self, Read, Write},
     path::{Path, PathBuf},
 };
@@ -11,10 +11,8 @@ use serde::{Serialize, de::DeserializeOwned};
 pub enum Error {
     Io(io::Error),
     Serde(serde_json::Error),
-    /// File found, but no contents.
     FileIsZero,
     UnInitialized(Option<io::Error>),
-    // IsADirectoryError,
     IsFile,
 }
 
@@ -109,37 +107,37 @@ pub trait Storage<P: AsRef<Path>> {
     }
 }
 
-/// Arg's `create` use as `OpenOptions.create()`
-pub fn load<T: DeserializeOwned, P: AsRef<Path>>(path: P, create: bool) -> Result<T, Error> {
-    if path.as_ref().parent().unwrap().exists() || create {
-        fs::create_dir_all(path.as_ref().parent().unwrap()).map_err(Error::Io)?;
-    }
-
-    let mut f = OpenOptions::new()
-        .read(true)
-        .create(create)
-        .truncate(false)
-        .write(true)
-        .open(path)
-        .map_err(Error::Io)?;
-    let mut con = String::new();
-    f.read_to_string(&mut con).map_err(Error::Io)?;
-
-    if con.is_empty() {
-        Err(Error::FileIsZero)
-    } else {
-        serde_json::from_str(&con).map_err(Error::Serde)
-    }
-}
-
-pub fn save<T: Serialize, P: AsRef<Path>>(src: T, path: P) -> Result<(), Error> {
-    let serialized_json = serde_json::to_string(&src).map_err(Error::Serde)?;
-    let mut f = OpenOptions::new()
-        .read(false)
-        .write(true)
-        .truncate(true)
-        .open(path)
-        .map_err(Error::Io)?;
-
-    f.write_all(serialized_json.as_bytes()).map_err(Error::Io)
-}
+// /// Arg's `create` use as `OpenOptions.create()`
+// pub fn load<T: DeserializeOwned, P: AsRef<Path>>(path: P, create: bool) -> Result<T, Error> {
+//     if path.as_ref().parent().unwrap().exists() || create {
+//         fs::create_dir_all(path.as_ref().parent().unwrap()).map_err(Error::Io)?;
+//     }
+//
+//     let mut f = OpenOptions::new()
+//         .read(true)
+//         .create(create)
+//         .truncate(false)
+//         .write(true)
+//         .open(path)
+//         .map_err(Error::Io)?;
+//     let mut con = String::new();
+//     f.read_to_string(&mut con).map_err(Error::Io)?;
+//
+//     if con.is_empty() {
+//         Err(Error::FileIsZero)
+//     } else {
+//         serde_json::from_str(&con).map_err(Error::Serde)
+//     }
+// }
+//
+// pub fn save<T: Serialize, P: AsRef<Path>>(src: T, path: P) -> Result<(), Error> {
+//     let serialized_json = serde_json::to_string(&src).map_err(Error::Serde)?;
+//     let mut f = OpenOptions::new()
+//         .read(false)
+//         .write(true)
+//         .truncate(true)
+//         .open(path)
+//         .map_err(Error::Io)?;
+//
+//     f.write_all(serialized_json.as_bytes()).map_err(Error::Io)
+// }
