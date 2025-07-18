@@ -14,14 +14,8 @@ https://www.youtube.com/watch?v=6l42h0nn5Sk
 
 ```bash
 # write a git commit msg for diff.
-ggw -model gemini/gemini-2.0-flash cmt
+ggw -m gemini/gemini-2.0-flash cmt
 # ask you that run git commit -m "msg"? by y / n
-
-# auto commit without asking
-ggw -model gemini/gemini-2.0-flash cmt -c
-# or
-ggw -y -model gemini/gemini-2.0-flash cmt
-# ⚠️ `-y` flag is used to bypass additional confirmation prompts.)
 ```
 
 ### edit feat
