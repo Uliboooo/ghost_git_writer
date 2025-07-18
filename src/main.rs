@@ -202,8 +202,8 @@ fn resolve_config_path() -> Result<PathBuf, Error> {
 fn main() -> Result<(), Error> {
     let cli = Cli::parse();
 
-    let _config =
-        config::Config::open::<config::Config>(resolve_config_path()?).map_err(Error::StrE)?;
+    // let _config =
+        // config::Config::open::<config::Config>(resolve_config_path()?).map_err(Error::StrE)?;
 
     let pj_path = resolve_work_path(cli.clone())?;
 
