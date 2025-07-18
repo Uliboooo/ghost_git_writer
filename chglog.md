@@ -1,5 +1,10 @@
 # change log
 
+
+## 0.4.2
+
+* feat: add custom prompt
+
 ## 0.4.0
 
 * feat: add feat to spin a spinner during llm processing

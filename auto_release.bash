@@ -18,11 +18,11 @@ else
     echo "❌ failed to build for windows"
 fi
 
-# if cargo build --release --target x86_64-unknown-linux-gnu; then
-#     success_builds=$((success_builds + 1))
-# else
-#     echo "❌ failed to build for linux"
-# fi
+if cargo build --release --target x86_64-unknown-linux-gnu; then
+    success_builds=$((success_builds + 1))
+else
+    echo "❌ failed to build for linux"
+fi
 
 # zip
 mkdir -p ./release
@@ -39,11 +39,11 @@ else
     echo "❌ failed to zip for windows"
 fi
 
-# if zip -j ./release/ggw_${ver}_linux.zip ./target/x86_64-unknown-linux-gnu/release/ggw; then
-#     success_zips=$((success_zips + 1))
-# else
-#     echo "❌ failed to zip for linux"
-# fi
+if zip -j ./release/ggw_${ver}_linux.zip ./target/x86_64-unknown-linux-gnu/release/ggw; then
+    success_zips=$((success_zips + 1))
+else
+    echo "❌ failed to zip for linux"
+fi
 
 # build results
 [ "$success_builds" -ge 1 ] && echo "✅ success arm mac build"
