@@ -22,12 +22,12 @@ struct Llm {
 }
 
 impl Llm {
-    pub fn get_default_model(&self) -> Option<&Model> {
-        self.model_alias.get(self.default_alias.as_ref()?)
+    fn get_default_model(&self) -> Option<Model> {
+        self.model_alias.get(self.default_alias.as_ref()?).cloned()
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Model {
     pub provider: String,
     pub model: String,

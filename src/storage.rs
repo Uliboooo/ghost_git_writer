@@ -2,7 +2,7 @@ use std::{
     fmt::Display,
     fs::OpenOptions,
     io::{self, Read, Write},
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 use serde::{Serialize, de::DeserializeOwned};
@@ -48,29 +48,29 @@ impl Error {
     }
 }
 
-fn db_path<P: AsRef<Path>>(dir: P) -> PathBuf {
-    dir.as_ref()
-        .join(".code_pulse")
-        .join("db")
-        .with_extension("json")
-}
+// fn db_path<P: AsRef<Path>>(dir: P) -> PathBuf {
+//     dir.as_ref()
+//         .join(".code_pulse")
+//         .join("db")
+//         .with_extension("json")
+// }
 
 pub trait Storage<P: AsRef<Path>> {
     /// *path: project dir path.
-    fn open<T>(dir_path: P) -> Result<T, Error>
+    fn open<T>(path: P) -> Result<T, Error>
     where
         T: Serialize + DeserializeOwned,
     {
-        if dir_path.as_ref().is_file() {
-            return Err(Error::IsFile);
-        }
+        // if dir_path.as_ref().is_file() {
+        //     return Err(Error::IsFile);
+        // }
 
         let mut f = OpenOptions::new()
             .read(true)
             .create(false)
             .truncate(false)
             .write(true)
-            .open(db_path(dir_path))
+            .open(path)
             .map_err(Error::Io)?;
 
         let mut con = String::new();
