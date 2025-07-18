@@ -1,6 +1,7 @@
 mod cli_helper;
 mod cmt_msg;
 mod config;
+mod custom_prompt;
 mod git;
 mod llm;
 mod read_codes;
@@ -11,6 +12,7 @@ mod sum;
 use chrono::Local;
 use clap::{Parser, Subcommand};
 use config::Model;
+use custom_prompt::custom_prpmt;
 use dialoguer::Input;
 use get_input::yes_no;
 use std::{
@@ -95,7 +97,9 @@ enum Commands {
 
     #[command(name = "sum", about = "out diff summary")]
     Sum(Sum),
-    // Chat(Chat),
+
+    #[command(name = "cst", about = "use custom prompt")]
+    Cst(Cst), // Chat(Chat),
 }
 
 #[derive(Debug, clap::Args, Clone)]
@@ -138,34 +142,10 @@ struct Sum {}
 // #[derive(Debug, clap::Args, Clone)]
 // struct Chat {}
 
-// struct Model {
-//     provider: String,
-//     model_name: String,
-// }
-//
-// impl Model {
-//     fn new<T: AsRef<str>>(provider: T, model_name: T) -> Self {
-//         Self {
-//             provider: provider.as_ref().to_string(),
-//             model_name: model_name.as_ref().to_string(),
-//         }
-//     }
-// }
-//
-// impl TryFrom<Cli> for Model {
-//     type Error = Error;
-//
-//     fn try_from(value: Cli) -> Result<Self, Self::Error> {
-//         match value.model {
-//             Some(v) => match v.split_once('/') {
-//                 Some(v) => Ok((v.0.to_string(), v.1.to_string())),
-//                 None => Err(Error::InvalidModelFormat(v)),
-//             },
-//             None => Err(Error::FailedParseCli),
-//         }
-//         .map(|f| Model::new(f.0, f.1))
-//     }
-// }
+#[derive(Debug, clap::Args, Clone)]
+struct Cst {
+    preset: String,
+}
 
 fn commit_from_gitdiff<T: AsRef<Path>, U: AsRef<str>>(
     project_path: &T,
@@ -317,6 +297,11 @@ fn main() -> Result<(), Error> {
                     Err(e) => return Err(e),
                 }
             }
+        }
+        Commands::Cst(cst) => {
+            println!("<<<custom prompt mode>>>");
+            let res = custom_prpmt(cst.clone().preset, use_model, resolved_api_key)?;
+            println!("\n{res}");
         }
     };
     Ok(())
