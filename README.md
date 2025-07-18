@@ -14,8 +14,16 @@ https://www.youtube.com/watch?v=6l42h0nn5Sk
 
 ```bash
 # write a git commit msg for diff.
-ggw -m gemini/gemini-2.0-flash cmt
-# ask you that run git commit -m "msg"? by y / n
+❯ ggw -m gemini/gemini-2.0-flash cmt
+<<<commit mode>>>
+
+read git diff...
+creating commmit message...
+created msg:docs: Update README with usage examples
+
+do you edit msg?(y/n)n
+
+continue?(y/n)>y
 ```
 
 ### edit feat
@@ -26,11 +34,12 @@ ggw -m gemini/gemini-2.0-flash cmt
 
 read git diff...
 creating commmit message...
-created msg:fix: update version to 0.3.5 and dependencies
-do you edit msg?(y/n)y
-edit: feat: add edit feat when suggest llm's commnt
+created msg:docs: Update README with usage examples
 
-continue?(y/n)>y
+do you edit msg?(y/n)y
+edit: foo
+
+continue?(y/n)>n
 ```
 
 ## out exmaples
