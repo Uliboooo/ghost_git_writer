@@ -14,14 +14,32 @@ https://www.youtube.com/watch?v=6l42h0nn5Sk
 
 ```bash
 # write a git commit msg for diff.
-ggw -model gemini/gemini-2.0-flash cmt
-# ask you that run git commit -m "msg"? by y / n
+❯ ggw -m gemini/gemini-2.0-flash cmt
+<<<commit mode>>>
 
-# auto commit without asking
-ggw -model gemini/gemini-2.0-flash cmt -c
-# or
-ggw -y -model gemini/gemini-2.0-flash cmt
-# ⚠️ `-y` flag is used to bypass additional confirmation prompts.)
+read git diff...
+creating commmit message...
+created msg:docs: Update README with usage examples
+
+do you edit msg?(y/n)n
+
+continue?(y/n)>y
+```
+
+### edit feat
+
+```zsh
+❯ ggw -m gemini/gemini-2.0-flash cmt
+<<<commit mode>>>
+
+read git diff...
+creating commmit message...
+created msg:docs: Update README with usage examples
+
+do you edit msg?(y/n)y
+edit: foo
+
+continue?(y/n)>n
 ```
 
 ## out exmaples
@@ -67,11 +85,18 @@ e.g. set `GGW_GEMINI_API=AAA444KEY` in .env or shell.
 ### global options
 
 - `-y --yes`: don't confirm run commands
-- `-p --provider [provider name]`: set provider
-- `-m --model [model name]`: set use model
+- ~~`-s --service [provider name]`: set provider~~
+- ~~`-m --model [model name]`: set use model~~
 - `-m --model [provider/model]`: you can set provider with model in -m option
 
 ### `cmt` options
 
 - [ ] `-c --auto-commit"`: auto run git commit without confirm and `-y` option.
+
+## features plan
+
+- write a README
+- Summarize about diff
+
+[![made-with-Rust](https://img.shields.io/badge/Made%20with-Rust-1f425f.svg)](https://www.rust-lang.org/)
 

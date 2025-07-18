@@ -1,11 +1,10 @@
 use crate::{Error, Model, llm};
 
-const GEN_MSG_PMT: &str = "\
-You are an assistant that writes Git commit messages.\n\
-Given a description of code changes, output only a single-line commit message \
-in Conventional Commits format (e.g., \\\"feat:\\\", \\\"fix:\\\", \\\"docs:\\\", etc.).\n\
-Do not include any extra text, code blocks, or formatting. Only output the commit message.\n\n\
-Changes:\n[PASTE_DIFF_OR_DESCRIPTION_HERE]";
+const GEN_MSG_PMT: &str = "You are an assistant that writes Git commit messages.\
+When code changes include modifications to documentation files (e.g., README.md, docs/), ignore those changes and generate the commit message based solely on source code changes.\
+Given a description of code changes, output only a single-line commit message in Conventional Commits format (e.g., \"feat:\", \"fix:\", \"docs:\", etc.).\
+Do not include any extra text, code blocks, or formatting. Only output the commit message.\
+Changes:\n";
 
 pub fn create_cmt_msg<T: AsRef<str>>(
     diff: T,
@@ -16,7 +15,7 @@ pub fn create_cmt_msg<T: AsRef<str>>(
     llm::call_llm(
         pmt.to_string(),
         model.provider,
-        model.model_name,
+        model.model,
         api_key.map(|f| f.as_ref().to_string()),
         None,
         None,
@@ -40,7 +39,7 @@ mod tests {
         println!("start");
         let res = create_cmt_msg(
             diff,
-            Model::new("gemini", "gemini-2.0-flash"),
+            Model::new("gemini", "gemini-2.0-flash", None, None),
             Some(env::var("GEMINI_API_KEY").unwrap()),
         );
         println!(":{res:?}");
