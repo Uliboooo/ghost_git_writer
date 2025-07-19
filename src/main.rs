@@ -83,6 +83,9 @@ struct Cli {
     #[arg(short = 'p', long = "path", help = "work path")]
     path: Option<String>,
 
+    #[arg(short = 'i', long = "no-interactive", help = "print only rsult")]
+    no_interactive: bool,
+
     #[command(subcommand)]
     subcommand: Commands,
 }
@@ -203,7 +206,7 @@ fn main() -> Result<(), Error> {
     let cli = Cli::parse();
 
     // let _config =
-        // config::Config::open::<config::Config>(resolve_config_path()?).map_err(Error::StrE)?;
+    // config::Config::open::<config::Config>(resolve_config_path()?).map_err(Error::StrE)?;
 
     let pj_path = resolve_work_path(cli.clone())?;
 
@@ -231,7 +234,14 @@ fn main() -> Result<(), Error> {
                 // cli.yes,
             )?;
 
-            println!("created msg:{msg}");
+            if !cli.no_interactive {
+                println!("created msg:{msg}");
+            } else {
+                println!("{msg}");
+            }
+            
+            if !cli.no_interactive {
+
             let msg = if yes_no("do you edit msg?(y/n)") {
                 Input::new()
                     .with_prompt("edit")
@@ -246,6 +256,7 @@ fn main() -> Result<(), Error> {
 
             if commit.auto_commit || cli.yes || yes_no("\ncontinue?(y/n)>") {
                 git::git_commit(pj_path, &msg, git_user.0, git_user.1)?;
+            }
             }
         }
         Commands::Sum(_sum) => {
