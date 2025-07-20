@@ -83,8 +83,8 @@ struct Cli {
     #[arg(short = 'p', long = "path", help = "work path")]
     path: Option<String>,
 
-    #[arg(short = 'i', long = "no-interactive", help = "print only rsult")]
-    no_interactive: bool,
+    #[arg(short = 'o', long = "one-line", help = "print only result")]
+    oneline: bool,
 
     #[command(subcommand)]
     subcommand: Commands,
@@ -234,40 +234,43 @@ fn main() -> Result<(), Error> {
                 // cli.yes,
             )?;
 
-            if !cli.no_interactive {
-                println!("created msg:{msg}");
-            } else {
+            if cli.oneline {
                 println!("{msg}");
-            }
-            
-            if !cli.no_interactive {
-
-            let msg = if yes_no("do you edit msg?(y/n)") {
-                Input::new()
-                    .with_prompt("edit")
-                    .default(msg.clone())
-                    .interact_text()
-                    .unwrap()
             } else {
-                msg
-            };
-
-            let git_user = git::get_user_email()?;
-
-            if commit.auto_commit || cli.yes || yes_no("\ncontinue?(y/n)>") {
-                git::git_commit(pj_path, &msg, git_user.0, git_user.1)?;
+                println!("created msg:{msg}");
             }
+
+            if !cli.oneline {
+                let msg = if yes_no("do you edit msg?(y/n)") {
+                    Input::new()
+                        .with_prompt("edit")
+                        .default(msg.clone())
+                        .interact_text()
+                        .unwrap()
+                } else {
+                    msg
+                };
+
+                let git_user = git::get_user_email()?;
+
+                if commit.auto_commit || cli.yes || yes_no("\ncontinue?(y/n)>") {
+                    git::git_commit(pj_path, &msg, git_user.0, git_user.1)?;
+                }
             }
         }
         Commands::Sum(_sum) => {
-            println!("<<<sumarize mode>>> \n\nread git diff...\nsummarizing diff...");
+            if !cli.oneline {
+                println!("<<<sumarize mode>>> \n\nread git diff...\nsummarizing diff...");
+            }
             let git_diff = git::get_diff(pj_path)?;
             let sum = summarize_diff(git_diff, use_model, resolved_api_key)?;
-            println!("summarize:\n\n{sum}");
+
+            println!("{}\n\n{sum}", if cli.oneline { "" } else { "summarize:" });
         }
         Commands::Rdm(r) => {
-            println!("<<readme mode>>> \n\nread project...\ncreating README");
-
+            if !cli.oneline {
+                println!("<<readme mode>>> \n\nread project...\ncreating README");
+            }
             let p = {
                 match r.source_path_list.clone() {
                     Some(v) => v,
@@ -296,7 +299,10 @@ fn main() -> Result<(), Error> {
                     pj_path.join(now).with_extension("md")
                 });
 
-            println!("created readme\n{readme_s}");
+            println!(
+                "created readme{}\n{readme_s}",
+                if cli.oneline { "" } else { "created readme" }
+            );
             if cli.yes || yes_no(format!("save to {}?", save_path.to_string_lossy())) {
                 let a = if r.allow_merge {
                     readme::merge_readme(&save_path, r.allow_over_write, readme_s)
@@ -304,13 +310,19 @@ fn main() -> Result<(), Error> {
                     readme::save_new_readme(&save_path, r.allow_over_write, readme_s)
                 };
                 match a {
-                    Ok(_) => println!("success! save to {}", save_path.to_string_lossy()),
+                    Ok(_) => {
+                        if !cli.oneline {
+                            println!("success! save to {}", save_path.to_string_lossy())
+                        }
+                    }
                     Err(e) => return Err(e),
                 }
             }
         }
         Commands::Cst(cst) => {
-            println!("<<<custom prompt mode>>>");
+            if !cli.oneline {
+                println!("<<<custom prompt mode>>>");
+            }
             let res = custom_prpmt(cst.clone().preset, use_model, resolved_api_key)?;
             println!("\n{res}");
         }
