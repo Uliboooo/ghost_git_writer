@@ -2,8 +2,6 @@ use llm_api_rs::{
     Anthropic, ChatCompletionRequest, ChatMessage, Gemini, LlmApiError, LlmProvider, OpenAI,
 };
 use ollama_rs::{Ollama, generation::completion::request::GenerationRequest};
-use tokio::runtime::Runtime;
-
 use crate::cli_helper;
 
 #[derive(Debug)]

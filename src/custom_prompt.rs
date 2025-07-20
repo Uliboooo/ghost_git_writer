@@ -1,6 +1,6 @@
 use crate::{Error, config::Model, llm};
 
-pub fn custom_prpmt<T: AsRef<str>>(
+pub fn custom_prompt<T: AsRef<str>>(
     pmt: T,
     model: Model,
     api_key: Option<T>,

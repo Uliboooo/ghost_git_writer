@@ -1,5 +1,9 @@
 # change log
 
+## 0.5.0
+
+* add feat: oneline mode that print only result e.g. generated commit message and summarize diff
+* change option format, `ggw -m gemini/foo cmt` -> `ggw cmt -m gemini/foo`
 
 ## 0.4.2
 

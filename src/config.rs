@@ -1,4 +1,4 @@
-use crate::{Cli, Error, storage::Storage};
+use crate::{Cli, Error, RootOption, storage::Storage};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::Path};
 
@@ -55,7 +55,7 @@ impl TryFrom<Cli> for Model {
     type Error = Error;
 
     fn try_from(value: Cli) -> Result<Self, Self::Error> {
-        match value.model {
+        match value.get_root_options().model {
             Some(v) => match v.split_once('/') {
                 Some(v) => Ok((v.0.to_string(), v.1.to_string())),
                 None => Err(Error::InvalidModelFormat(v)),

@@ -10,9 +10,9 @@ mod storage;
 mod sum;
 
 use chrono::Local;
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 use config::Model;
-use custom_prompt::custom_prpmt;
+use custom_prompt::custom_prompt;
 use dialoguer::Input;
 use get_input::yes_no;
 use std::{
@@ -21,7 +21,6 @@ use std::{
     fs, io,
     path::{Path, PathBuf},
 };
-use storage::Storage;
 use sum::summarize_diff;
 
 const ANTHROPIC_API: &str = "GGW_ANTHROPIC_API";
@@ -49,17 +48,33 @@ impl Display for Error {
         match self {
             Error::GitE(e) => write!(f, "git error: {e}"),
             Error::Llm(e) => write!(f, "llm error: {e}"),
-            Error::EnvE(e) => write!(f, "enviroment var error: {e}"),
+            Error::EnvE(e) => write!(f, "environment var error: {e}"),
             Error::FailedParseCli => write!(f, "failed parse cli"),
             Error::IoE(e) => write!(f, "io error: {e}"),
             Error::NotFoundFile => write!(f, "not found file"),
-            Error::InvalidModelFormat(e) => write!(f, "incalid model format {e}"),
+            Error::InvalidModelFormat(e) => write!(f, "invalid model format {e}"),
             Error::NotSettingPath => write!(f, "file path could not be read"),
             Error::NotFoundConfig(p) => write!(f, "not found config at {p}"),
             Error::NotFoundHome => write!(f, "not found home dir in your machine"),
             Error::StrE(error) => write!(f, "storage error: {error}"),
         }
     }
+}
+
+trait RootOption {
+    fn get_root_options(&self) -> RootOptions;
+}
+
+#[derive(Debug, Args, Clone)]
+struct RootOptions {
+    #[arg(short = 'm', long = "model", help = "-m gemini/gemini-2.0-flash")]
+    model: Option<String>,
+
+    #[arg(short = 'p', long = "path", help = "work path")]
+    path: Option<String>,
+
+    #[arg(short = 'o', long = "one-line", help = "print only result")]
+    oneline: bool,
 }
 
 #[derive(Debug, Parser, Clone)]
@@ -74,20 +89,24 @@ struct Cli {
 
     // #[arg(short = 's', long = "service")]
     // provider: Option<String>,
-    #[arg(short = 'm', long = "model", help = "-m gemini/gemini-2.0-flash")]
-    model: Option<String>,
-
+    // #[arg(short = 'm', long = "model", help = "-m gemini/gemini-2.0-flash")]
+    // model: Option<String>,
     #[arg(short = 'd', long = "default-model", help = "use default model")]
     default_model: Option<String>,
 
-    #[arg(short = 'p', long = "path", help = "work path")]
-    path: Option<String>,
+    // #[arg(short = 'p', long = "path", help = "work path")]
+    // path: Option<String>,
 
-    #[arg(short = 'o', long = "one-line", help = "print only result")]
-    oneline: bool,
-
+    // #[arg(short = 'o', long = "one-line", help = "print only result")]
+    // oneline: bool,
     #[command(subcommand)]
     subcommand: Commands,
+}
+
+impl RootOption for Cli {
+    fn get_root_options(&self) -> RootOptions {
+        self.subcommand.get_root_options()
+    }
 }
 
 #[derive(Debug, Subcommand, Clone)]
@@ -105,17 +124,40 @@ enum Commands {
     Cst(Cst), // Chat(Chat),
 }
 
+impl RootOption for Commands {
+    fn get_root_options(&self) -> RootOptions {
+        match self {
+            Commands::Cmt(commit) => commit.get_root_options(),
+            Commands::Rdm(readme) => readme.get_root_options(),
+            Commands::Sum(sum) => sum.get_root_options(),
+            Commands::Cst(cst) => cst.get_root_options(),
+        }
+    }
+}
+
 #[derive(Debug, clap::Args, Clone)]
 struct Commit {
+    #[command(flatten)]
+    root_options: RootOptions,
+
     #[arg(short = 'c', long = "auto-commit", help = "allow auto git commit")]
     auto_commit: bool,
 
-    #[arg(short = 'a', long = "cumstom-prompt", help = "add custom prompt")]
+    #[arg(short = 'a', long = "custom-prompt", help = "add custom prompt")]
     a: bool,
+}
+
+impl RootOption for Commit {
+    fn get_root_options(&self) -> RootOptions {
+        self.root_options.clone()
+    }
 }
 
 #[derive(Debug, clap::Args, Clone)]
 struct Readme {
+    #[command(flatten)]
+    root_options: RootOptions,
+
     #[arg(
         short = 's',
         long = "sources",
@@ -139,15 +181,39 @@ struct Readme {
     allow_over_write: bool,
 }
 
+impl RootOption for Readme {
+    fn get_root_options(&self) -> RootOptions {
+        self.root_options.clone()
+    }
+}
+
 #[derive(Debug, clap::Args, Clone)]
-struct Sum {}
+struct Sum {
+    #[command(flatten)]
+    root_options: RootOptions,
+}
+
+impl RootOption for Sum {
+    fn get_root_options(&self) -> RootOptions {
+        self.root_options.clone()
+    }
+}
 
 // #[derive(Debug, clap::Args, Clone)]
 // struct Chat {}
 
 #[derive(Debug, clap::Args, Clone)]
 struct Cst {
+    #[command(flatten)]
+    root_options: RootOptions,
+
     preset: String,
+}
+
+impl RootOption for Cst {
+    fn get_root_options(&self) -> RootOptions {
+        self.root_options.clone()
+    }
 }
 
 fn commit_from_gitdiff<T: AsRef<Path>, U: AsRef<str>>(
@@ -177,8 +243,8 @@ fn resolve_api_key(model: &Model) -> Option<Result<String, env::VarError>> {
     }
 }
 
-fn resolve_work_path(cli: Cli) -> Result<PathBuf, Error> {
-    let p = match cli.path {
+fn resolve_work_path<T: RootOption>(option: &T) -> Result<PathBuf, Error> {
+    let p = match option.get_root_options().path {
         Some(p) => PathBuf::from(p),
         None => env::current_dir().map_err(Error::IoE)?,
     };
@@ -207,8 +273,7 @@ fn main() -> Result<(), Error> {
 
     // let _config =
     // config::Config::open::<config::Config>(resolve_config_path()?).map_err(Error::StrE)?;
-
-    let pj_path = resolve_work_path(cli.clone())?;
+    let pj_path = resolve_work_path(&cli.subcommand)?;
 
     // let use_model = if let Some(d) = cli.default_model {
     //     config.get_default_model()
@@ -225,7 +290,7 @@ fn main() -> Result<(), Error> {
 
     match &cli.subcommand {
         Commands::Cmt(commit) => {
-            println!("<<<commit mode>>>\n\nread git diff...\ncreating commmit message...");
+            println!("<<<commit mode>>>\n\nread git diff...\ncreating commit message...");
             let msg = commit_from_gitdiff(
                 &pj_path,
                 use_model,
@@ -234,13 +299,13 @@ fn main() -> Result<(), Error> {
                 // cli.yes,
             )?;
 
-            if cli.oneline {
+            if cli.get_root_options().oneline {
                 println!("{msg}");
             } else {
                 println!("created msg:{msg}");
             }
 
-            if !cli.oneline {
+            if !cli.get_root_options().oneline {
                 let msg = if yes_no("do you edit msg?(y/n)") {
                     Input::new()
                         .with_prompt("edit")
@@ -259,16 +324,23 @@ fn main() -> Result<(), Error> {
             }
         }
         Commands::Sum(_sum) => {
-            if !cli.oneline {
-                println!("<<<sumarize mode>>> \n\nread git diff...\nsummarizing diff...");
+            if !cli.get_root_options().oneline {
+                println!("<<<summarize mode>>> \n\nread git diff...\nsummarizing diff...");
             }
             let git_diff = git::get_diff(pj_path)?;
             let sum = summarize_diff(git_diff, use_model, resolved_api_key)?;
 
-            println!("{}\n\n{sum}", if cli.oneline { "" } else { "summarize:" });
+            println!(
+                "{}\n\n{sum}",
+                if cli.get_root_options().oneline {
+                    ""
+                } else {
+                    "summarize:"
+                }
+            );
         }
         Commands::Rdm(r) => {
-            if !cli.oneline {
+            if !cli.get_root_options().oneline {
                 println!("<<readme mode>>> \n\nread project...\ncreating README");
             }
             let p = {
@@ -301,7 +373,11 @@ fn main() -> Result<(), Error> {
 
             println!(
                 "created readme{}\n{readme_s}",
-                if cli.oneline { "" } else { "created readme" }
+                if cli.get_root_options().oneline {
+                    ""
+                } else {
+                    "created readme"
+                }
             );
             if cli.yes || yes_no(format!("save to {}?", save_path.to_string_lossy())) {
                 let a = if r.allow_merge {
@@ -311,7 +387,7 @@ fn main() -> Result<(), Error> {
                 };
                 match a {
                     Ok(_) => {
-                        if !cli.oneline {
+                        if !cli.get_root_options().oneline {
                             println!("success! save to {}", save_path.to_string_lossy())
                         }
                     }
@@ -320,10 +396,10 @@ fn main() -> Result<(), Error> {
             }
         }
         Commands::Cst(cst) => {
-            if !cli.oneline {
+            if !cli.get_root_options().oneline {
                 println!("<<<custom prompt mode>>>");
             }
-            let res = custom_prpmt(cst.clone().preset, use_model, resolved_api_key)?;
+            let res = custom_prompt(cst.clone().preset, use_model, resolved_api_key)?;
             println!("\n{res}");
         }
     };
