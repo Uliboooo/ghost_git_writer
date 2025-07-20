@@ -65,3 +65,62 @@ impl TryFrom<Cli> for Model {
         .map(|f| Model::new(f.0, f.1, None, None))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{Cli, Commands, Commit, RootOptions, config::Model};
+
+    #[test]
+    fn model_format_test() {
+        let root = RootOptions {
+            model: Some("gemini/gemini-2.0-flash".to_string()),
+            path: None,
+            oneline: false,
+        };
+        let cmt = Commit {
+            root_options: root,
+            auto_commit: false,
+            additional_pmt: false,
+        };
+        let cli = Cli {
+            yes: false,
+            default_model: None,
+            subcommand: Commands::Cmt(cmt),
+        };
+        assert!(Model::try_from(cli).is_ok());
+
+        let root = RootOptions {
+            model: Some("gemini-gemini-2.0-flash".to_string()),
+            path: None,
+            oneline: false,
+        };
+        let cmt = Commit {
+            root_options: root,
+            auto_commit: false,
+            additional_pmt: false,
+        };
+        let cli = Cli {
+            yes: false,
+            default_model: None,
+            subcommand: Commands::Cmt(cmt),
+        };
+        assert!(Model::try_from(cli).is_err());
+
+        let root = RootOptions {
+            model: Some("gemini".to_string()),
+            path: None,
+            oneline: false,
+        };
+        let cmt = Commit {
+            root_options: root,
+            auto_commit: false,
+            additional_pmt: false,
+        };
+        let cli = Cli {
+            yes: false,
+            default_model: None,
+            subcommand: Commands::Cmt(cmt),
+        };
+        assert!(Model::try_from(cli).is_err());
+    }
+}

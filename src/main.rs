@@ -144,7 +144,7 @@ struct Commit {
     auto_commit: bool,
 
     #[arg(short = 'a', long = "custom-prompt", help = "add custom prompt")]
-    a: bool,
+    additional_pmt: bool,
 }
 
 impl RootOption for Commit {
