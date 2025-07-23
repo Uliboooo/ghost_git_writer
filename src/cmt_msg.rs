@@ -6,12 +6,16 @@ Given a description of code changes, output only a single-line commit message in
 Do not include any extra text, code blocks, or formatting. Only output the commit message.\
 Changes:\n";
 
-pub fn create_cmt_msg<T: AsRef<str>>(
+pub fn create_cmt_msg<T: AsRef<str>, U: AsRef<str>>(
     diff: T,
     model: Model,
     api_key: Option<T>,
+    lang: Option<U>,
 ) -> Result<String, Error> {
-    let pmt = format!("{GEN_MSG_PMT} {}", diff.as_ref());
+    let lang = lang
+        .map(|f| f.as_ref().to_string())
+        .unwrap_or("english".to_string());
+    let pmt = format!("Generate the commit message in {lang}. {GEN_MSG_PMT} {}", diff.as_ref());
     llm::call_llm(
         pmt.to_string(),
         model.provider,
@@ -41,6 +45,7 @@ mod tests {
             diff,
             Model::new("gemini", "gemini-2.0-flash", None, None),
             Some(env::var("GEMINI_API_KEY").unwrap()),
+            Some("japanese"),
         );
         println!(":{res:?}");
         assert!(res.is_ok());

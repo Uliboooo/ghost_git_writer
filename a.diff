@@ -1,0 +1,218 @@
+Cargo.lock --- TOML
+449                                                                      449 
+450 [[package]]                                                          450 [[package]]
+451 name = "ghost_git_writer"                                            451 name = "ghost_git_writer"
+452 version = "0.5.0"                                                    452 version = "0.6.0"
+453 dependencies = [                                                     453 dependencies = [
+454  "chrono",                                                           454  "chrono",
+455  "clap",                                                             455  "clap",
+
+Cargo.toml --- TOML
+1 [package]                                                              1 [package]
+2 name = "ghost_git_writer"                                              2 name = "ghost_git_writer"
+3 version = "0.5.0"                                                      3 version = "0.6.0"
+4 edition = "2024"                                                       4 edition = "2024"
+5 license = "MIT OR Apache-2.0"                                          5 license = "MIT OR Apache-2.0"
+6 authors = ["Uliboooo uliboulibo@gmail.com"]                            6 authors = ["Uliboooo uliboulibo@gmail.com"]
+
+chglog.md --- Text
+1  1 # change log
+2  2 
+.  3 ## 0.6.0
+.  4 
+.  5 * feat: multi lang support
+.  6 
+.  7 ```bash
+.  8 <<<commit mode>>>
+.  9 
+. 10 read git diff...
+. 11 creating commit message...
+. 12 japanese
+. 13 
+. 14 ⠹created msg:feat: 言語オプションを追加し、LLM呼び出し時に言語を指定できるようにした
+. 15 
+. 16 do you edit msg?(y/n)n
+. 17 
+. 18 continue?(y/n)>n
+. 19 ```
+. 20 
+3 21 ## 0.5.0
+4 22 
+5 23 * add feat: oneline mode that print only result e.g. generated commit message and summarize diff
+
+src/cmt_msg.rs --- 1/2 --- Rust
+ 6 Do not include any extra text, code blocks, or formatting. Only outpu  6 Do not include any extra text, code blocks, or formatting. Only outpu
+ . t the commit message.\                                                 . t the commit message.\
+ 7 Changes:\n";                                                           7 Changes:\n";
+ 8                                                                        8 
+ 9 pub fn create_cmt_msg<T: AsRef<str>>(                                  9 pub fn create_cmt_msg<T: AsRef<str>, U: AsRef<str>>(
+10     diff: T,                                                          10     diff: T,
+11     model: Model,                                                     11     model: Model,
+12     api_key: Option<T>,                                               12     api_key: Option<T>,
+..                                                                       13     lang: Option<U>,
+13 ) -> Result<String, Error> {                                          14 ) -> Result<String, Error> {
+..                                                                       15     let lang = lang
+..                                                                       16         .map(|f| f.as_ref().to_string())
+..                                                                       17         .unwrap_or("english".to_string());
+14     let pmt = format!("{GEN_MSG_PMT} {}", diff.as_ref());             18     let pmt = format!("Generate the commit message in {lang}. {GEN_MS
+..                                                                       .. G_PMT} {}", diff.as_ref());
+15     llm::call_llm(                                                    19     llm::call_llm(
+16         pmt.to_string(),                                              20         pmt.to_string(),
+17         model.provider,                                               21         model.provider,
+
+src/cmt_msg.rs --- 2/2 --- Rust
+41 45             diff,
+42 46             Model::new("gemini", "gemini-2.0-flash", None, None),
+43 47             Some(env::var("GEMINI_API_KEY").unwrap()),
+.. 48             Some("japanese"),
+44 49         );
+45 50         println!(":{res:?}");
+46 51         assert!(res.is_ok());
+
+src/llm.rs --- Rust
+.                                                                        1 use crate::cli_helper;
+1 use llm_api_rs::{                                                      2 use llm_api_rs::{
+2     Anthropic, ChatCompletionRequest, ChatMessage, Gemini, LlmApiError 3     Anthropic, ChatCompletionRequest, ChatMessage, Gemini, LlmApiError
+. , LlmProvider, OpenAI,                                                 . , LlmProvider, OpenAI,
+3 };                                                                     4 };
+4 use ollama_rs::{Ollama, generation::completion::request::GenerationReq 5 use ollama_rs::{Ollama, generation::completion::request::GenerationReq
+. uest};                                                                 . uest};
+5 use crate::cli_helper;                                                 . 
+6                                                                        6 
+7 #[derive(Debug)]                                                       7 #[derive(Debug)]
+8 pub enum LlmError {                                                    8 pub enum LlmError {
+
+src/main.rs --- 1/7 --- Rust
+76 76     #[arg(short = 'o', long = "one-line", help = "print only result")]
+77 77     oneline: bool,
+.. 78 
+.. 79     #[arg(short = 'l', long = "lang", help = "change output language")]
+.. 80     lang: Option<String>,
+78 81 }
+79 82 
+80 83 #[derive(Debug, Parser, Clone)]
+
+src/main.rs --- 2/7 --- Rust
+220     project_path: &T,                                                223     project_path: &T,
+221     model: Model,                                                    224     model: Model,
+222     api_key: Option<U>,                                              225     api_key: Option<U>,
+223     // options: (&Cli, &Commit),                                     226     lang: Option<U>,
+224     // ⚠️configとかにまとめるかも                                     ... 
+225     // 拡張性が低い                                                  ... 
+226     // auto_commit: bool,                                            ... 
+227     // yes_option: bool,                                             ... 
+228 ) -> Result<String, Error> {                                         227 ) -> Result<String, Error> {
+229     let git_diff = git::get_diff(project_path)?;                     228     let git_diff = git::get_diff(project_path)?;
+230     let commit_msg =                                                 229     let commit_msg = cmt_msg::create_cmt_msg(
+231         cmt_msg::create_cmt_msg(git_diff, model, api_key.map(|f| f.a 230         git_diff,
+... s_ref().to_string()))?;                                              ... 
+...                                                                      231         model,
+...                                                                      232         api_key.map(|f| f.as_ref().to_string()),
+...                                                                      233         lang,
+...                                                                      234     )?;
+232                                                                      235 
+233     Ok(commit_msg)                                                   236     Ok(commit_msg)
+
+src/main.rs --- 3/7 --- Rust
+290                                                                      293 
+291     match &cli.subcommand {                                          294     match &cli.subcommand {
+292         Commands::Cmt(commit) => {                                   295         Commands::Cmt(commit) => {
+293             println!("<<<commit mode>>>\n\nread git diff...\ncreatin 296             println!("<<<commit mode>>>\n\nread git diff...\ncreatin
+... g commit message...");                                               ... g commit message...\n{}\n", cli.get_root_options().lang.clone().unwr
+...                                                                      ... ap());
+294             let msg = commit_from_gitdiff(                           297             let msg = commit_from_gitdiff(
+295                 &pj_path,                                            298                 &pj_path,
+296                 use_model,                                           299                 use_model,
+297                 resolved_api_key,                                    300                 resolved_api_key,
+298                 // commit.auto_commit,                               301                 cli.get_root_options().lang, // commit.auto_commit,
+299                 // cli.yes,                                          302                                              // cli.yes,
+300             )?;                                                      303             )?;
+301                                                                      304 
+
+src/main.rs --- 4/7 --- Rust
+331 334             let sum = summarize_diff(
+... 335                 git_diff,
+... 336                 use_model,
+... 337                 resolved_api_key,
+... 338                 cli.get_root_options().lang,
+... 339             )?;
+332 340 
+333 341             println!(
+
+src/main.rs --- 5/7 --- Rust
+343             if !cli.get_root_options().oneline {                     351             if !cli.get_root_options().oneline {
+344                 println!("<<readme mode>>> \n\nread project...\ncrea 352                 println!("<<readme mode>>> \n\nread project...\ncrea
+... ting README");                                                       ... ting README");
+345             }                                                        353             }
+346             let p = {                                                354             let resolved_path_list = {
+347                 match r.source_path_list.clone() {                   355                 match r.source_path_list.clone() {
+348                     Some(v) => v,                                    356                     Some(v) => v,
+349                     None => match r.dir.clone() {                    357                     None => match r.dir.clone() {
+
+src/main.rs --- 6/7 --- Rust
+361                     },                                               369                     },
+362                 }                                                    370                 }
+363             };                                                       371             };
+364                                                                      372             let lang = cli.get_root_options().lang;
+365             let readme_s = readme::create_readme(p.as_ref(), use_mod 373             let readme_s = readme::create_readme(
+... el, resolved_api_key)?;                                              ... 
+...                                                                      374                 resolved_path_list.as_ref(),
+...                                                                      375                 use_model,
+...                                                                      376                 resolved_api_key,
+...                                                                      377                 lang,
+...                                                                      378             )?;
+366                                                                      379 
+367             let save_path = readme::find_readme(&pj_path)            380             let save_path = readme::find_readme(&pj_path)
+
+src/main.rs --- 7/7 --- Rust
+421 434             &p,
+422 435             crate::Model::new("gemini", "gemini-2.0-flash", None, None),
+423 436             Some(a),
+... 437             Some("japanese".to_string()),
+424 438         );
+425 439         println!("{res:?}");
+426 440     }
+
+src/readme.rs --- Rust
+20                                                                       20 
+21 Here is the project code or file list:";                              21 Here is the project code or file list:";
+22                                                                       22 
+23 pub fn create_readme<T: AsRef<str>, P: AsRef<Path>>(                  23 pub fn create_readme<T: AsRef<str>, P: AsRef<Path>, U: AsRef<str>>(
+24     files: &Vec<P>,                                                   24     files: &Vec<P>,
+25     model: Model,                                                     25     model: Model,
+26     api_key: Option<T>,                                               26     api_key: Option<T>,
+..                                                                       27     lang: Option<U>,
+27 ) -> Result<String, Error> {                                          28 ) -> Result<String, Error> {
+..                                                                       29     let lang = lang
+..                                                                       30         .map(|f| f.as_ref().to_string())
+..                                                                       31         .unwrap_or("english".to_string());
+28     let code_base = load_codes(files)?;                               32     let code_base = load_codes(files)?;
+29                                                                       33 
+30     let pmt = format!("{DEFAULT_PROMT} {code_base}");                 34     let pmt = format!("Generate the README.md in {lang}. use japanese
+..                                                                       .. . you must not use english {DEFAULT_PROMT} {code_base}");
+31     llm::call_llm(                                                    35     llm::call_llm(
+32         pmt.to_string(),                                              36         pmt.to_string(),
+33         model.provider,                                               37         model.provider,
+
+src/sum.rs --- Rust
+ 4 List the key modifications, what was added, removed, or modified, and  4 List the key modifications, what was added, removed, or modified, and
+ .  briefly explain their purpose or impact if possible.                  .  briefly explain their purpose or impact if possible.
+ 5 --- diff here ---";                                                    5 --- diff here ---";
+ 6                                                                        6 
+ 7 pub fn summarize_diff<T: AsRef<str>>(                                  7 pub fn summarize_diff<T: AsRef<str>, U: AsRef<str>>(
+ 8     diff: T,                                                           8     diff: T,
+ 9     model: Model,                                                      9     model: Model,
+10     api_key: Option<T>,                                               10     api_key: Option<T>,
+..                                                                       11     lang: Option<U>,
+11 ) -> Result<String, Error> {                                          12 ) -> Result<String, Error> {
+..                                                                       13     let lang = lang
+..                                                                       14         .map(|f| f.as_ref().to_string())
+..                                                                       15         .unwrap_or("english".to_string());
+12     let pmt = format!("{DEFAULT_PROMT} {}", diff.as_ref());           16     let pmt = format!("summarize the changes in {lang}.{DEFAULT_PROMT
+..                                                                       .. } {}.", diff.as_ref());
+..                                                                       17 
+..                                                                       18     println!("{pmt}");
+13     llm::call_llm(                                                    19     llm::call_llm(
+14         pmt.to_string(),                                              20         pmt.to_string(),
+15         model.provider,                                               21         model.provider,
+

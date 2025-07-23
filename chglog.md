@@ -1,5 +1,23 @@
 # change log
 
+## 0.6.0
+
+* feat: multi lang support
+
+```bash
+<<<commit mode>>>
+
+read git diff...
+creating commit message...
+japanese
+
+⠹created msg:feat: 言語オプションを追加し、LLM呼び出し時に言語を指定できるようにした
+
+do you edit msg?(y/n)n
+
+continue?(y/n)>n
+```
+
 ## 0.5.0
 
 * add feat: oneline mode that print only result e.g. generated commit message and summarize diff

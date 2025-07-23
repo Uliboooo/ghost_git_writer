@@ -75,6 +75,9 @@ struct RootOptions {
 
     #[arg(short = 'o', long = "one-line", help = "print only result")]
     oneline: bool,
+
+    #[arg(short = 'l', long = "lang", help = "change output language")]
+    lang: Option<String>,
 }
 
 #[derive(Debug, Parser, Clone)]
@@ -220,15 +223,15 @@ fn commit_from_gitdiff<T: AsRef<Path>, U: AsRef<str>>(
     project_path: &T,
     model: Model,
     api_key: Option<U>,
-    // options: (&Cli, &Commit),
-    // ⚠️configとかにまとめるかも
-    // 拡張性が低い
-    // auto_commit: bool,
-    // yes_option: bool,
+    lang: Option<U>,
 ) -> Result<String, Error> {
     let git_diff = git::get_diff(project_path)?;
-    let commit_msg =
-        cmt_msg::create_cmt_msg(git_diff, model, api_key.map(|f| f.as_ref().to_string()))?;
+    let commit_msg = cmt_msg::create_cmt_msg(
+        git_diff,
+        model,
+        api_key.map(|f| f.as_ref().to_string()),
+        lang,
+    )?;
 
     Ok(commit_msg)
 }
@@ -290,13 +293,14 @@ fn main() -> Result<(), Error> {
 
     match &cli.subcommand {
         Commands::Cmt(commit) => {
-            println!("<<<commit mode>>>\n\nread git diff...\ncreating commit message...");
+            println!(
+                "<<<commit mode>>>\n\nread git diff...\ncreating commit message...\n");
             let msg = commit_from_gitdiff(
                 &pj_path,
                 use_model,
                 resolved_api_key,
-                // commit.auto_commit,
-                // cli.yes,
+                cli.get_root_options().lang, // commit.auto_commit,
+                                             // cli.yes,
             )?;
 
             if cli.get_root_options().oneline {
@@ -328,7 +332,12 @@ fn main() -> Result<(), Error> {
                 println!("<<<summarize mode>>> \n\nread git diff...\nsummarizing diff...");
             }
             let git_diff = git::get_diff(pj_path)?;
-            let sum = summarize_diff(git_diff, use_model, resolved_api_key)?;
+            let sum = summarize_diff(
+                git_diff,
+                use_model,
+                resolved_api_key,
+                cli.get_root_options().lang,
+            )?;
 
             println!(
                 "{}\n\n{sum}",
@@ -343,7 +352,7 @@ fn main() -> Result<(), Error> {
             if !cli.get_root_options().oneline {
                 println!("<<readme mode>>> \n\nread project...\ncreating README");
             }
-            let p = {
+            let resolved_path_list = {
                 match r.source_path_list.clone() {
                     Some(v) => v,
                     None => match r.dir.clone() {
@@ -361,8 +370,13 @@ fn main() -> Result<(), Error> {
                     },
                 }
             };
-
-            let readme_s = readme::create_readme(p.as_ref(), use_model, resolved_api_key)?;
+            let lang = cli.get_root_options().lang;
+            let readme_s = readme::create_readme(
+                resolved_path_list.as_ref(),
+                use_model,
+                resolved_api_key,
+                lang,
+            )?;
 
             let save_path = readme::find_readme(&pj_path)
                 .filter(|_| r.allow_merge)
@@ -421,6 +435,7 @@ mod test {
             &p,
             crate::Model::new("gemini", "gemini-2.0-flash", None, None),
             Some(a),
+            Some("japanese".to_string()),
         );
         println!("{res:?}");
     }
