@@ -262,6 +262,28 @@ fn resolve_work_path<T: RootOption>(option: &T) -> Result<PathBuf, Error> {
     }
 }
 
+/// Resolves the configuration file path for the GGW application.
+///
+/// This function searches for configuration files in the user's home directory
+/// in the following order of preference:
+///
+/// 1. `~/.ggw.json` - Primary configuration file in JSON format
+/// 2. `~/.ggw/.ggw.conf` - Secondary configuration file in the `.ggw` subdirectory
+///
+/// # Returns
+///
+/// * `Ok(PathBuf)` - The path to the first existing configuration file found
+/// * `Err(Error::NotFoundHome)` - If the home directory cannot be determined
+/// * `Err(Error::NotFoundConfig)` - If no configuration file is found in any of the expected locations
+///
+/// # Examples
+///
+/// ```rust
+/// match resolve_config_path() {
+///     Ok(config_path) => println!("Found config at: {}", config_path.display()),
+///     Err(e) => eprintln!("Config resolution failed: {}", e),
+/// }
+/// ```
 fn resolve_config_path() -> Result<PathBuf, Error> {
     let home_conf = home::home_dir().ok_or(Error::NotFoundHome)?;
 
@@ -277,8 +299,8 @@ fn resolve_config_path() -> Result<PathBuf, Error> {
 fn main() -> Result<(), Error> {
     let cli = Cli::parse();
 
-    let d = env::current_dir().unwrap().join("test_config.json");
-    let conf = config::Config::open::<config::Config>(d).map_err(Error::StorageE)?;
+    let conf_path = resolve_config_path()?;
+    let conf = config::Config::open::<config::Config>(conf_path).map_err(Error::StorageE)?;
 
     let pj_path = resolve_work_path(&cli.subcommand)?;
 
