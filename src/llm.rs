@@ -1,4 +1,4 @@
-use crate::cli_helper;
+use crate::{Error, cli_helper};
 use llm_api_rs::{
     Anthropic, ChatCompletionRequest, ChatMessage, Gemini, LlmApiError, LlmProvider, OpenAI,
 };
@@ -30,7 +30,7 @@ pub fn call_llm<T: AsRef<str>>(
     api_key: Option<String>,
     temperature: Option<f32>,
     max_tokens: Option<u32>,
-) -> Result<String, LlmError> {
+) -> Result<String, Error> {
     let model = model.as_ref().to_string();
     let pmt = pmt.as_ref().to_string();
     // let rt = Runtime::new().unwrap();
@@ -39,24 +39,29 @@ pub fn call_llm<T: AsRef<str>>(
         Some(v) => v,
         None => {
             if provider.as_ref().to_lowercase() != "ollama" {
-                return Err(LlmError::NotFoundAPIKey);
+                return Err(Error::Llm(LlmError::NotFoundAPIKey));
             } else {
                 String::new()
             }
         }
     };
-    match provider.as_ref().to_lowercase().as_str() {
-        "ollama" => cli_helper::a(|| ollama(pmt, model)),
-        "anthropic" => {
-            cli_helper::a(move || anthropic(api_key, model, pmt, temperature, max_tokens))
-        }
-        "deepseek" => {
-            cli_helper::a(move || deep_seek(api_key, model, pmt, temperature, max_tokens))
-        }
-        "gemini" => cli_helper::a(move || gemini(api_key, model, pmt, temperature, max_tokens)),
-        "openai" => cli_helper::a(move || openai(api_key, model, pmt, temperature, max_tokens)),
+    let res = match provider.as_ref().to_lowercase().as_str() {
+        "ollama" => cli_helper::run_with_spinner(|| ollama(pmt, model)),
+        "anthropic" => cli_helper::run_with_spinner(move || {
+            anthropic(api_key, model, pmt, temperature, max_tokens)
+        }),
+        "deepseek" => cli_helper::run_with_spinner(move || {
+            deep_seek(api_key, model, pmt, temperature, max_tokens)
+        }),
+        "gemini" => cli_helper::run_with_spinner(move || {
+            gemini(api_key, model, pmt, temperature, max_tokens)
+        }),
+        "openai" => cli_helper::run_with_spinner(move || {
+            openai(api_key, model, pmt, temperature, max_tokens)
+        }),
         _ => Err(LlmError::UndefinedProvider),
-    }
+    };
+    todo!()
 }
 
 async fn ollama(pmt: String, model: String) -> Result<String, LlmError> {

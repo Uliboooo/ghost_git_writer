@@ -5,14 +5,16 @@ use std::{
 
 use tokio::{runtime::Runtime, task, time};
 
-pub fn a<F, Fut, T>(task_fn: F) -> T
+use crate::Error;
+
+pub fn run_with_spinner<F, Fut, T>(task_fn: F) -> Result<T, Error>
 where
     F: FnOnce() -> Fut + Send + 'static,
     Fut: std::future::Future<Output = T> + Send + 'static,
     T: Send + 'static,
 {
-    let rt = Runtime::new().unwrap();
-    rt.block_on(spinner(task_fn))
+    let rt = Runtime::new().map_err(Error::IoE)?;
+    Ok(rt.block_on(spinner(task_fn)))
 }
 
 pub async fn spinner<F, Fut, T>(task_fn: F) -> T
