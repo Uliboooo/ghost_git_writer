@@ -245,6 +245,7 @@ fn commit_from_gitdiff<T: AsRef<Path>, U: AsRef<str>>(
     model: Model,
     api_key: Option<U>,
     lang: Option<U>,
+    extra: Option<U>,
 ) -> Result<String, Error> {
     let git_diff = git::get_diff(project_path)?;
     let commit_msg = cmt_msg::create_cmt_msg(
@@ -252,6 +253,7 @@ fn commit_from_gitdiff<T: AsRef<Path>, U: AsRef<str>>(
         model,
         api_key.map(|f| f.as_ref().to_string()),
         lang,
+        extra,
     )?;
 
     Ok(commit_msg)
@@ -348,7 +350,7 @@ fn main() -> Result<(), Error> {
                 use_model,
                 resolved_api_key,
                 cli.get_root_options().lang, // commit.auto_commit,
-                                             // cli.yes,
+                cli.get_root_options().extra,
             )?;
 
             if cli.get_root_options().oneline {
@@ -385,6 +387,7 @@ fn main() -> Result<(), Error> {
                 use_model,
                 resolved_api_key,
                 cli.get_root_options().lang,
+                cli.get_root_options().extra,
             )?;
 
             println!(
@@ -424,6 +427,7 @@ fn main() -> Result<(), Error> {
                 use_model,
                 resolved_api_key,
                 lang,
+                cli.get_root_options().extra,
             )?;
 
             let save_path = readme::find_readme(&work_path)
@@ -461,30 +465,14 @@ fn main() -> Result<(), Error> {
             if !cli.get_root_options().oneline {
                 println!("<<<custom prompt mode>>>");
             }
-            let res = custom_prompt(cst.clone().preset, use_model, resolved_api_key)?;
+            let res = custom_prompt(
+                cst.clone().preset,
+                use_model,
+                resolved_api_key,
+                cli.get_root_options().extra,
+            )?;
             println!("\n{res}");
         }
     };
     Ok(())
-}
-
-#[cfg(test)]
-mod test {
-    use std::env::{self, current_dir};
-
-    use crate::commit_from_gitdiff;
-
-    #[test]
-    fn cmt_test() {
-        let a = env::var("GEMINI_API_KEY").unwrap();
-        let p = current_dir().unwrap();
-        println!("project_path: {p:?}");
-        let res = commit_from_gitdiff(
-            &p,
-            crate::Model::new("gemini", "gemini-2.0-flash", None, None),
-            Some(a),
-            Some("japanese".to_string()),
-        );
-        println!("{res:?}");
-    }
 }

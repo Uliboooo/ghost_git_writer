@@ -25,13 +25,22 @@ pub fn create_readme<T: AsRef<str>, P: AsRef<Path>, U: AsRef<str>>(
     model: Model,
     api_key: Option<T>,
     lang: Option<U>,
+    extra: Option<U>,
 ) -> Result<String, Error> {
     let lang = lang
         .map(|f| f.as_ref().to_string())
         .unwrap_or("english".to_string());
     let code_base = load_codes(files)?;
 
-    let pmt = format!("Generate the README.md in {lang}. use japanese. you must not use english {DEFAULT_PROMT} {code_base}");
+    let pmt = format!(
+        "Generate the README.md in {lang}. use japanese. you must not use english {DEFAULT_PROMT} {code_base}.{}",
+        format!(
+            " # Additional Instructions: {}",
+            extra
+                .map(|f| f.as_ref().to_string())
+                .unwrap_or("".to_string())
+        )
+    );
     llm::call_llm(
         pmt.to_string(),
         model.provider,
@@ -89,4 +98,3 @@ pub fn find_readme<P: AsRef<Path>>(path: P) -> Option<PathBuf> {
         }
     })
 }
-
