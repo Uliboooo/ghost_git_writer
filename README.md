@@ -100,3 +100,25 @@ e.g. set `GGW_GEMINI_API=AAA444KEY` in .env or shell.
 
 [![made-with-Rust](https://img.shields.io/badge/Made%20with-Rust-1f425f.svg)](https://www.rust-lang.org/)
 
+## Config format (v.0.7.0)
+
+```json
+{
+  "prompt": {
+    "custom_prompt": {
+      "test": "this is test"
+    }
+  },
+  "llm": {
+    "default_alias": null,
+    "model_alias": {
+      "ge": {
+        "provider": "gemini",
+        "model": "gemini-2.0-flash",
+        "temperature": null,
+        "max_tokens": null
+      }
+    }
+  }
+}
+```

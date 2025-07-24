@@ -21,6 +21,7 @@ use std::{
     fs, io,
     path::{Path, PathBuf},
 };
+use storage::Storage;
 use sum::summarize_diff;
 
 const ANTHROPIC_API: &str = "GGW_ANTHROPIC_API";
@@ -33,7 +34,7 @@ pub enum Error {
     GitE(git2::Error),
     Llm(llm::LlmError),
     EnvE(env::VarError),
-    StrE(storage::Error),
+    StorageE(storage::Error),
     FailedParseCli,
     IoE(io::Error),
     NotFoundFile,
@@ -41,6 +42,7 @@ pub enum Error {
     NotSettingPath,
     NotFoundHome,
     NotFoundConfig(String),
+    NotFoundDefaultModel,
 }
 
 impl Display for Error {
@@ -56,7 +58,8 @@ impl Display for Error {
             Error::NotSettingPath => write!(f, "file path could not be read"),
             Error::NotFoundConfig(p) => write!(f, "not found config at {p}"),
             Error::NotFoundHome => write!(f, "not found home dir in your machine"),
-            Error::StrE(error) => write!(f, "storage error: {error}"),
+            Error::StorageE(error) => write!(f, "storage error: {error}"),
+            Error::NotFoundDefaultModel => write!(f, ""),
         }
     }
 }
@@ -274,18 +277,12 @@ fn resolve_config_path() -> Result<PathBuf, Error> {
 fn main() -> Result<(), Error> {
     let cli = Cli::parse();
 
-    // let _config =
-    // config::Config::open::<config::Config>(resolve_config_path()?).map_err(Error::StrE)?;
+    let config = config::Config::open::<config::Config>("").map_err(Error::StorageE)?;
+
     let pj_path = resolve_work_path(&cli.subcommand)?;
 
-    // let use_model = if let Some(d) = cli.default_model {
-    //     config.get_default_model()
-    // } else {
-    //     let a = Model::try_from(cli.model)?;
-    //     Some(&a)
-    // };
-
-    let use_model = Model::try_from(cli.clone())?;
+    // let use_model = Model::try_from(cli.clone())?;
+    let use_model = Model::to_model(cli.clone(), config)?;
 
     let resolved_api_key = resolve_api_key(&use_model)
         .transpose()
@@ -293,8 +290,7 @@ fn main() -> Result<(), Error> {
 
     match &cli.subcommand {
         Commands::Cmt(commit) => {
-            println!(
-                "<<<commit mode>>>\n\nread git diff...\ncreating commit message...\n");
+            println!("<<<commit mode>>>\n\nread git diff...\ncreating commit message...\n");
             let msg = commit_from_gitdiff(
                 &pj_path,
                 use_model,

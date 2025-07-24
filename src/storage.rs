@@ -94,7 +94,7 @@ pub trait Storage<P: AsRef<Path>> {
     where
         Self: Serialize + DeserializeOwned,
     {
-        let serialized_json = serde_json::to_string(self).map_err(Error::Serde)?;
+        let serialized_json = serde_json::to_string_pretty(self).map_err(Error::Serde)?;
         let mut f = OpenOptions::new()
             .read(false)
             .write(true)
