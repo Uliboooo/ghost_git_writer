@@ -1,48 +1,120 @@
-# ghost writer
+# ghost writer - `ggw`
 
-**⚠️ beta.**
+[![made-with-Rust](https://img.shields.io/badge/Made%20with-Rust-1f425f.svg)](https://www.rust-lang.org/)
 
-## Demo
+**⚠️ beta ⚠️**
+
+<!-- ## Demo
 
 at ver.0.2.1
 
 ![gif](./resource/wwg_demo_0_2_1.gif)
 
-https://www.youtube.com/watch?v=6l42h0nn5Sk
+https://www.youtube.com/watch?v=6l42h0nn5Sk -->
 
 ## usage
 
+### create a git commit msg
+
 ```bash
-# write a git commit msg for diff.
-❯ ggw -m gemini/gemini-2.0-flash cmt
+# write a git commit msg from diff.
+❯ ggw cmt -m gemini/gemini-2.0-flash
 <<<commit mode>>>
 
 read git diff...
 creating commmit message...
 created msg:docs: Update README with usage examples
 
-do you edit msg?(y/n)n
+do you edit msg?(y/n)n # if chose `y`, you can write a new commit yourself
 
 continue?(y/n)>y
 ```
 
-### edit feat
+## subcommand & options
 
-```zsh
-❯ ggw -m gemini/gemini-2.0-flash cmt
-<<<commit mode>>>
+subcommands
 
-read git diff...
-creating commmit message...
-created msg:docs: Update README with usage examples
-
-do you edit msg?(y/n)y
-edit: foo
-
-continue?(y/n)>n
+```bash
+cmt   gen commit msg and git commit
+rdm   create a readme
+sum   out diff summary
+cst   use custom prompt
+help  Print this message or the help of the given subcommand(s)
 ```
 
-## out exmaples
+root options
+
+```bash
+Options:
+  -y, --yes
+  -h, --help     Print help
+  -V, --version  Print version
+```
+
+`cmt` options
+
+```bash
+Usage: ggw cmt [OPTIONS]
+
+Options:
+  -m, --model <MODEL>  -m gemini/gemini-2.0-flash
+  -a, --alias <ALIAS>  registed alias
+  -p, --path <PATH>    work path
+  -o, --one-line       print only result
+  -l, --lang <LANG>    change output language
+  -e, --extra <EXTRA>  extra prompt
+  -c, --auto-commit    allow auto git commit
+  -h, --help           Print help
+```
+
+`rdm` options
+
+```bash
+Usage: ggw rdm [OPTIONS]
+
+Options:
+  -m, --model <MODEL>               -m gemini/gemini-2.0-flash
+  -a, --alias <ALIAS>               registed alias
+  -p, --path <PATH>                 work path
+  -o, --one-line                    print only result
+  -l, --lang <LANG>                 change output language
+  -e, --extra <EXTRA>               extra prompt
+  -s, --sources <SOURCE_PATH_LIST>
+  -d, --directory <DIR>
+  -m, --allow-merge
+  -o, --over-write
+  -h, --help                        Print help
+```
+
+`sum` options
+
+```bash
+Usage: ggw sum [OPTIONS]
+
+Options:
+  -m, --model <MODEL>  -m gemini/gemini-2.0-flash
+  -a, --alias <ALIAS>  registed alias
+  -p, --path <PATH>    work path
+  -o, --one-line       print only result
+  -l, --lang <LANG>    change output language
+  -e, --extra <EXTRA>  extra prompt
+  -h, --help           Print help
+```
+
+`cst` ottions
+
+```bash
+Options:
+  -m, --model <MODEL>  -m gemini/gemini-2.0-flash
+  -a, --alias <ALIAS>  registed alias
+  -p, --path <PATH>    work path
+  -o, --one-line       print only result
+  -l, --lang <LANG>    change output language
+  -e, --extra <EXTRA>  extra prompt
+  -h, --help           Print help
+```
+
+## result exmaples
 
 ```bash
 *  <6353330> 2025-07-16 [uliboooo]  (HEAD -> develop) fix: Remove duplicate println and fix typo in prompt
@@ -52,16 +124,14 @@ continue?(y/n)>n
 
 ## supported llm
 
-\[impl\]\[test]
-
-- [x] [ ] ollama
-- [x] [ ] anthropic
-- [x] [x] gemini
-- [x] [ ] openai
-- [x] [ ] deepseek
+- [x] ollama
+- [x] anthropic
+- [x] gemini
+- [x] openai
+- [x] deepseek
 
 this program get **environment variables** for api_key.
-env var name list
+enviroment variable list
 
 | Provider  | API Key Env Variable |
 | :-------: | :------------------: |
@@ -70,37 +140,9 @@ env var name list
 |  openai   |   `GGW_OPENAI_API`   |
 | deepseek  |  `GGW_DEEPSEEK_API`  |
 
-e.g. set `GGW_GEMINI_API=AAA444KEY` in .env or shell.
+## Config format (v.0.8.1)
 
-## default operation
-
-## subcommand
-
-| subcommand |      desc      |
-| :--------: | :------------: |
-|   `cmt`    | commit message |
-
-## options
-
-### global options
-
-- `-y --yes`: don't confirm run commands
-- ~~`-s --service [provider name]`: set provider~~
-- ~~`-m --model [model name]`: set use model~~
-- `-m --model [provider/model]`: you can set provider with model in -m option
-
-### `cmt` options
-
-- [ ] `-c --auto-commit"`: auto run git commit without confirm and `-y` option.
-
-## features plan
-
-- write a README
-- Summarize about diff
-
-[![made-with-Rust](https://img.shields.io/badge/Made%20with-Rust-1f425f.svg)](https://www.rust-lang.org/)
-
-## Config format (v.0.7.0)
+- custom_prompt feature is not yet completed
 
 ```json
 {
