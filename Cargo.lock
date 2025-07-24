@@ -420,11 +420,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "get_input"
-version = "0.5.1"
-source = "git+https://github.com/Uliboooo/get_input#868dc7a0ba5ebe77b8458013c5d63c51d686ef9a"
-
-[[package]]
 name = "getrandom"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -449,13 +444,12 @@ dependencies = [
 
 [[package]]
 name = "ghost_git_writer"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "chrono",
  "clap",
  "derive-getters",
  "dialoguer",
- "get_input",
  "git2",
  "home",
  "llm-api-rs",

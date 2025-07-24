@@ -2,6 +2,7 @@ mod cli_helper;
 mod cmt_msg;
 mod config;
 mod custom_prompt;
+mod get_input;
 mod git;
 mod llm;
 mod read_codes;
