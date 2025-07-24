@@ -41,8 +41,9 @@ pub enum Error {
     InvalidModelFormat(String),
     NotSettingPath,
     NotFoundHome,
-    NotFoundConfig(String),
+    NotFoundConfig,
     NotFoundDefaultModel,
+    NotFoundModelAlias(String),
 }
 
 impl Display for Error {
@@ -56,10 +57,11 @@ impl Display for Error {
             Error::NotFoundFile => write!(f, "not found file"),
             Error::InvalidModelFormat(e) => write!(f, "invalid model format {e}"),
             Error::NotSettingPath => write!(f, "file path could not be read"),
-            Error::NotFoundConfig(p) => write!(f, "not found config at {p}"),
+            Error::NotFoundConfig => write!(f, "not found config"),
             Error::NotFoundHome => write!(f, "not found home dir in your machine"),
             Error::StorageE(error) => write!(f, "storage error: {error}"),
             Error::NotFoundDefaultModel => write!(f, ""),
+            Error::NotFoundModelAlias(model) => write!(f, "not found model alias {model}"),
         }
     }
 }
@@ -70,8 +72,22 @@ trait RootOption {
 
 #[derive(Debug, Args, Clone)]
 struct RootOptions {
-    #[arg(short = 'm', long = "model", help = "-m gemini/gemini-2.0-flash")]
+    #[arg(
+        short = 'm',
+        long = "model",
+        help = "-m gemini/gemini-2.0-flash",
+        // required only if `--alias` is not specified
+        conflicts_with = "alias"
+    )]
     model: Option<String>,
+
+    #[arg(
+        short = 'a',
+        long = "alias",
+        help = "registed alias",
+        conflicts_with = "model"
+    )]
+    alias: Option<String>,
 
     #[arg(short = 'p', long = "path", help = "work path")]
     path: Option<String>,
@@ -81,6 +97,9 @@ struct RootOptions {
 
     #[arg(short = 'l', long = "lang", help = "change output language")]
     lang: Option<String>,
+
+    #[arg(short = 'e', long = "extra", help = "extra prompt")]
+    extra: Option<String>,
 }
 
 #[derive(Debug, Parser, Clone)]
@@ -97,8 +116,8 @@ struct Cli {
     // provider: Option<String>,
     // #[arg(short = 'm', long = "model", help = "-m gemini/gemini-2.0-flash")]
     // model: Option<String>,
-    #[arg(short = 'd', long = "default-model", help = "use default model")]
-    default_model: Option<String>,
+    // #[arg(short = 'd', long = "default-model", help = "use default model")]
+    // default_model: Option<String>,
 
     // #[arg(short = 'p', long = "path", help = "work path")]
     // path: Option<String>,
@@ -148,9 +167,8 @@ struct Commit {
 
     #[arg(short = 'c', long = "auto-commit", help = "allow auto git commit")]
     auto_commit: bool,
-
-    #[arg(short = 'a', long = "custom-prompt", help = "add custom prompt")]
-    additional_pmt: bool,
+    // #[arg(short = 'e', long = "extra", help = "add custom prompt")]
+    // additional_pmt: bool,
 }
 
 impl RootOption for Commit {
@@ -268,7 +286,7 @@ fn resolve_work_path<T: RootOption>(option: &T) -> Result<PathBuf, Error> {
 /// in the following order of preference:
 ///
 /// 1. `~/.ggw.json` - Primary configuration file in JSON format
-/// 2. `~/.ggw/.ggw.conf` - Secondary configuration file in the `.ggw` subdirectory
+/// 2. `~/.ggw/.ggw.json` - Secondary configuration file in the `.ggw` subdirectory
 ///
 /// # Returns
 ///
@@ -285,26 +303,37 @@ fn resolve_work_path<T: RootOption>(option: &T) -> Result<PathBuf, Error> {
 /// }
 /// ```
 fn resolve_config_path() -> Result<PathBuf, Error> {
-    let home_conf = home::home_dir().ok_or(Error::NotFoundHome)?;
+    let home_path = home::home_dir().ok_or(Error::NotFoundHome)?;
 
-    if home_conf.join(".ggw.json").exists() {
-        Ok(home_conf.join(".ggw.json"))
-    } else if home_conf.join(".ggw").join(".ggw.conf").exists() {
-        Ok(home_conf.join(".ggw").join(".ggw.conf"))
+    let primary = home_path.join(".ggw.json");
+    let secondary = home_path.join(".ggw").join(".ggw.json");
+
+    if primary.exists() {
+        Ok(primary)
+    } else if secondary.exists() {
+        Ok(secondary)
     } else {
-        Err(Error::NotFoundConfig("".to_string()))
+        Err(Error::NotFoundConfig)
     }
+}
+
+#[test]
+fn res() {
+    let res = resolve_config_path();
+    println!("{res:?}");
 }
 
 fn main() -> Result<(), Error> {
     let cli = Cli::parse();
 
     let conf_path = resolve_config_path()?;
+
+    println!("{conf_path:?}");
+
     let conf = config::Config::open::<config::Config>(conf_path).map_err(Error::StorageE)?;
 
-    let pj_path = resolve_work_path(&cli.subcommand)?;
+    let work_path = resolve_work_path(&cli.subcommand)?;
 
-    // let use_model = Model::try_from(cli.clone())?;
     let use_model = Model::to_model(cli.clone(), conf)?;
 
     let resolved_api_key = resolve_api_key(&use_model)
@@ -315,7 +344,7 @@ fn main() -> Result<(), Error> {
         Commands::Cmt(commit) => {
             println!("<<<commit mode>>>\n\nread git diff...\ncreating commit message...\n");
             let msg = commit_from_gitdiff(
-                &pj_path,
+                &work_path,
                 use_model,
                 resolved_api_key,
                 cli.get_root_options().lang, // commit.auto_commit,
@@ -342,7 +371,7 @@ fn main() -> Result<(), Error> {
                 let git_user = git::get_user_email()?;
 
                 if commit.auto_commit || cli.yes || yes_no("\ncontinue?(y/n)>") {
-                    git::git_commit(pj_path, &msg, git_user.0, git_user.1)?;
+                    git::git_commit(work_path, &msg, git_user.0, git_user.1)?;
                 }
             }
         }
@@ -350,7 +379,7 @@ fn main() -> Result<(), Error> {
             if !cli.get_root_options().oneline {
                 println!("<<<summarize mode>>> \n\nread git diff...\nsummarizing diff...");
             }
-            let git_diff = git::get_diff(pj_path)?;
+            let git_diff = git::get_diff(work_path)?;
             let sum = summarize_diff(
                 git_diff,
                 use_model,
@@ -397,11 +426,11 @@ fn main() -> Result<(), Error> {
                 lang,
             )?;
 
-            let save_path = readme::find_readme(&pj_path)
+            let save_path = readme::find_readme(&work_path)
                 .filter(|_| r.allow_merge)
                 .unwrap_or_else(|| {
                     let now = Local::now().format("%b-%d-%H-%M").to_string();
-                    pj_path.join(now).with_extension("md")
+                    work_path.join(now).with_extension("md")
                 });
 
             println!(

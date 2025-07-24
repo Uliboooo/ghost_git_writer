@@ -5,7 +5,7 @@
     }
   },
   "llm": {
-    "default_alias": "ge",
+    "default_alias": null,
     "model_alias": {
       "ge": {
         "provider": "gemini",

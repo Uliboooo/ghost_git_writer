@@ -1,6 +1,6 @@
 use crate::{Error, Model, llm};
 
-const DEFAULT_PROMT: &str = "Read the following diff and summarize the changes in plain English.
+const DEFAULT_PROMPT: &str = "Read the following diff and summarize the changes in plain English.
 List the key modifications, what was added, removed, or modified, and briefly explain their purpose or impact if possible.
 diff:";
 
@@ -15,7 +15,7 @@ pub fn summarize_diff<T: AsRef<str>, U: AsRef<str>>(
         .unwrap_or("english".to_string());
 
     let pmt = format!(
-        "Generate the README.md in {lang}. {DEFAULT_PROMT} {}.",
+        "Generate the README.md in {lang}. {DEFAULT_PROMPT} {}.",
         diff.as_ref()
     );
 

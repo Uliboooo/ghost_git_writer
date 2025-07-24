@@ -19,6 +19,10 @@ impl Config {
     pub fn get_default_m(self) -> Option<Model> {
         self.llm.unwrap().get_default_model()
     }
+
+    pub fn get_model_by_alias<T: AsRef<str>>(&self, alias: T) -> Option<Model> {
+        self.llm.as_ref().unwrap().get_model_by_alias(alias)
+    }
 }
 
 impl<P: AsRef<Path>> Storage<P> for Config {}
@@ -54,10 +58,10 @@ impl Llm {
             model_alias,
         }
     }
-    pub fn get_default_model(&self) -> Option<Model> {
+    fn get_default_model(&self) -> Option<Model> {
         self.model_alias.get(self.default_alias.as_ref()?).cloned()
     }
-    pub fn get_model_by_alias<T: AsRef<str>>(&self, alias: T) -> Option<Model> {
+    fn get_model_by_alias<T: AsRef<str>>(&self, alias: T) -> Option<Model> {
         self.model_alias.get(alias.as_ref()).cloned()
     }
 }
@@ -124,12 +128,46 @@ impl TryFrom<Config> for Model {
 }
 
 impl Model {
-    /// if value does not haev model info, get from config.
+    /// Resolves a `Model` from CLI arguments and configuration.
+    ///
+    /// This function attempts to create a `Model` by checking CLI arguments in the following priority order:
+    /// 1. If the `-m` flag is provided with a model specification, parse it directly
+    /// 2. If an alias is provided via CLI arguments, resolve it to a model
+    /// 3. If neither is provided, fall back to the default model from the configuration
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - The `Cli` struct containing parsed command-line arguments
+    /// * `config` - The `Config` struct containing application configuration including model aliases
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<Model, Error>`:
+    /// - `Ok(Model)` if a model could be successfully resolved from any of the sources
+    /// - `Err(Error)` if:
+    ///   - The model format is invalid when parsing from `-m` flag
+    ///   - The alias cannot be resolved to a model
+    ///   - No default model is configured and no CLI arguments are provided
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// let cli = Cli::parse();
+    /// let config = Config::load()?;
+    /// let model = Model::to_model(cli, config)?;
+    /// ```
     pub fn to_model(value: Cli, config: Config) -> Result<Model, Error> {
         // if exist arg `-m`
         match value.get_root_options().model {
+            // if exist arg `-m`
             Some(mm) => Model::try_from(mm),
-            None => Model::try_from(config),
+            None => match value.get_root_options().alias {
+                // if exists `-a` arg
+                Some(alias_name) => config
+                    .get_model_by_alias(alias_name.clone())
+                    .ok_or(Error::NotFoundModelAlias(alias_name)),
+                None => Model::try_from(config),
+            },
         }
     }
 }

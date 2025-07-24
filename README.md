@@ -4,7 +4,7 @@
 
 ## Demo
 
-ver.0.2.1
+at ver.0.2.1
 
 ![gif](./resource/wwg_demo_0_2_1.gif)
 
@@ -44,7 +44,7 @@ continue?(y/n)>n
 
 ## out exmaples
 
-```
+```bash
 *  <6353330> 2025-07-16 [uliboooo]  (HEAD -> develop) fix: Remove duplicate println and fix typo in prompt
 *  <a07f22f> 2025-07-16 [uliboooo]  feat: add auto commit option and yes option
 *  <272de26> 2025-07-16 [uliboooo]  docs: Improve commit message generation prompt
@@ -52,7 +52,7 @@ continue?(y/n)>n
 
 ## supported llm
 
-[impl][test]
+\[impl\]\[test]
 
 - [x] [ ] ollama
 - [x] [ ] anthropic
@@ -63,12 +63,12 @@ continue?(y/n)>n
 this program get **environment variables** for api_key.
 env var name list
 
-| Provider | API Key Env Variable |
-| :---: | :---: |
-| anthropic | `GGW_ANTHROPIC_API` |
-| gemini | `GGW_GEMINI_API` |
-| openai | `GGW_OPENAI_API` |
-| deepseek | `GGW_DEEPSEEK_API` |
+| Provider  | API Key Env Variable |
+| :-------: | :------------------: |
+| anthropic | `GGW_ANTHROPIC_API`  |
+|  gemini   |   `GGW_GEMINI_API`   |
+|  openai   |   `GGW_OPENAI_API`   |
+| deepseek  |  `GGW_DEEPSEEK_API`  |
 
 e.g. set `GGW_GEMINI_API=AAA444KEY` in .env or shell.
 
