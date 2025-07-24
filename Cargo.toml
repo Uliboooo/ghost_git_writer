@@ -1,6 +1,6 @@
 [package]
 name = "ghost_git_writer"
-version = "0.4.3"
+version = "0.8.1"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 authors = ["Uliboooo uliboulibo@gmail.com"]
@@ -9,17 +9,19 @@ authors = ["Uliboooo uliboulibo@gmail.com"]
 name = "ggw"
 path = "src/main.rs"
 
+[profile.release]
+opt-level = "z"
+
 [dependencies]
-clap = { version = "4.5.*", features = ["derive"] }
+clap = { version = "4.5.41", features = ["derive"] }
 git2 = "0.20.2"
 ollama-rs = "0.3.2"
 tokio = { version = "1.45.1", features = ["rt", "rt-multi-thread"] }
 llm-api-rs = "0.1.0"
 serde = { version = "1.0.219", features = ["derive"] }
-serde_json = "1.0.140"
+serde_json = "1.0.141"
 derive-getters = "0.5.0"
-get_input = {git = "https://github.com/Uliboooo/get_input", branch = "master"}
+get_input = { git = "https://github.com/Uliboooo/get_input", branch = "master" }
 chrono = "0.4.41"
 dialoguer = "0.11.0"
 home = "0.5.11"
-
