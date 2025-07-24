@@ -2,7 +2,7 @@ use crate::{Cli, Error, RootOption, storage::Storage};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::Path};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Config {
     prompt: Option<Prompt>,
     llm: Option<Llm>,
@@ -15,11 +15,15 @@ impl Config {
             llm: Some(llm),
         })
     }
+
+    pub fn get_default_m(self) -> Option<Model> {
+        self.llm.unwrap().get_default_model()
+    }
 }
 
 impl<P: AsRef<Path>> Storage<P> for Config {}
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Prompt {
     // 0: prompt alias
     // 1: customized prompt
@@ -37,7 +41,7 @@ impl Prompt {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Llm {
     default_alias: Option<String>,
     model_alias: HashMap<String, Model>,
@@ -97,18 +101,35 @@ impl TryFrom<Cli> for Model {
     }
 }
 
+impl TryFrom<String> for Model {
+    type Error = Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        match value.split_once('/') {
+            Some(v) => Ok(Model::new(v.0, v.1, None, None)),
+            None => Err(Error::FailedParseCli),
+        }
+    }
+}
+
+impl TryFrom<Config> for Model {
+    type Error = Error;
+
+    fn try_from(value: Config) -> Result<Self, Self::Error> {
+        value
+            .llm
+            .and_then(|f| f.get_default_model())
+            .ok_or(Error::NotFoundDefaultModel)
+    }
+}
+
 impl Model {
     /// if value does not haev model info, get from config.
     pub fn to_model(value: Cli, config: Config) -> Result<Model, Error> {
-        match Model::try_from(value) {
-            Ok(v) => Ok(v),
-            Err(e) => match e {
-                Error::FailedParseCli => Ok(config
-                    .llm
-                    .and_then(|f| f.get_default_model())
-                    .ok_or(Error::NotFoundDefaultModel)?),
-                e => Err(e),
-            },
+        // if exist arg `-m`
+        match value.get_root_options().model {
+            Some(mm) => Model::try_from(mm),
+            None => Model::try_from(config),
         }
     }
 }

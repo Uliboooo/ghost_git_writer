@@ -277,12 +277,13 @@ fn resolve_config_path() -> Result<PathBuf, Error> {
 fn main() -> Result<(), Error> {
     let cli = Cli::parse();
 
-    let config = config::Config::open::<config::Config>("").map_err(Error::StorageE)?;
+    let d = env::current_dir().unwrap().join("test_config.json");
+    let conf = config::Config::open::<config::Config>(d).map_err(Error::StorageE)?;
 
     let pj_path = resolve_work_path(&cli.subcommand)?;
 
     // let use_model = Model::try_from(cli.clone())?;
-    let use_model = Model::to_model(cli.clone(), config)?;
+    let use_model = Model::to_model(cli.clone(), conf)?;
 
     let resolved_api_key = resolve_api_key(&use_model)
         .transpose()
