@@ -422,7 +422,7 @@ dependencies = [
 [[package]]
 name = "get_input"
 version = "0.5.1"
-source = "git+https://github.com/Uliboooo/get_input?branch=master#868dc7a0ba5ebe77b8458013c5d63c51d686ef9a"
+source = "git+https://github.com/Uliboooo/get_input#868dc7a0ba5ebe77b8458013c5d63c51d686ef9a"
 
 [[package]]
 name = "getrandom"
