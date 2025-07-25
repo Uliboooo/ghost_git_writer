@@ -17,11 +17,11 @@ impl Config {
     }
 
     pub fn get_default_m(self) -> Option<Model> {
-        self.llm.unwrap().get_default_model()
+        self.llm?.get_default_model()
     }
 
     pub fn get_model_by_alias<T: AsRef<str>>(&self, alias: T) -> Option<Model> {
-        self.llm.as_ref().unwrap().get_model_by_alias(alias)
+        self.llm.as_ref()?.get_model_by_alias(alias)
     }
 }
 

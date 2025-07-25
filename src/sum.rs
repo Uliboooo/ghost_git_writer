@@ -9,21 +9,20 @@ pub fn summarize_diff<T: AsRef<str>, U: AsRef<str>>(
     model: Model,
     api_key: Option<T>,
     lang: Option<U>,
-    extra: Option<U>
+    extra: Option<U>,
 ) -> Result<String, Error> {
     let lang = lang
         .map(|f| f.as_ref().to_string())
         .unwrap_or("english".to_string());
 
+    let extra = extra
+        .map(|f| format!("# Additional Instructions:{}", f.as_ref()))
+        .unwrap_or("".to_string());
+
     let pmt = format!(
         "Generate the README.md in {lang}. {DEFAULT_PROMPT} {}.{}",
         diff.as_ref(),
-        format!(
-            " # Additional Instructions: {}",
-            extra
-                .map(|f| f.as_ref().to_string())
-                .unwrap_or("".to_string())
-        )
+        extra,
     );
 
     llm::call_llm(
@@ -34,6 +33,4 @@ pub fn summarize_diff<T: AsRef<str>, U: AsRef<str>>(
         None,
         None,
     )
-    .map_err(Error::Llm)
 }
-

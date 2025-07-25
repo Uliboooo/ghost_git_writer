@@ -19,5 +19,4 @@ pub fn custom_prompt<T: AsRef<str>>(
         None,
         None,
     )
-    .map_err(Error::Llm)
 }

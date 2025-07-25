@@ -33,7 +33,7 @@ pub fn create_readme<T: AsRef<str>, P: AsRef<Path>, U: AsRef<str>>(
     let code_base = load_codes(files)?;
 
     let pmt = format!(
-        "Generate the README.md in {lang}. use japanese. you must not use english {DEFAULT_PROMT} {code_base}.{}",
+        "Generate the README.md in {lang}. you must not use english {DEFAULT_PROMT} {code_base}.{}",
         format!(
             " # Additional Instructions: {}",
             extra
@@ -49,7 +49,6 @@ pub fn create_readme<T: AsRef<str>, P: AsRef<Path>, U: AsRef<str>>(
         None,
         None,
     )
-    .map_err(Error::Llm)
 }
 
 pub fn merge_readme<P: AsRef<Path>, T: AsRef<str>>(
