@@ -10,6 +10,7 @@ pub fn get_diff<P: AsRef<Path>>(path: P) -> Result<String, Error> {
         .peel_to_commit()
         .map_err(Error::GitE)?;
     let head_tree = head_commit.tree().map_err(Error::GitE)?;
+
     let diff = repo
         .diff_tree_to_workdir(Some(&head_tree), Some(&mut DiffOptions::new()))
         .map_err(Error::GitE)?;
@@ -33,7 +34,7 @@ pub fn git_commit<P: AsRef<Path>, M: AsRef<str>, T: AsRef<str>>(
     let repo = Repository::open(path).map_err(Error::GitE)?;
     let mut index = repo.index().map_err(Error::GitE)?;
     index
-        .add_all(["*"].iter(), IndexAddOption::DEFAULT, None)
+        .add_all(["*"].iter(), IndexAddOption::CHECK_PATHSPEC, None)
         .map_err(Error::GitE)?;
     index.write().map_err(Error::GitE)?;
 
