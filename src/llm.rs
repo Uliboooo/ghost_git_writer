@@ -33,7 +33,6 @@ pub fn call_llm<T: AsRef<str>>(
 ) -> Result<String, Error> {
     let model = model.as_ref().to_string();
     let pmt = pmt.as_ref().to_string();
-    // let rt = Runtime::new().unwrap();
 
     let api_key = match api_key {
         Some(v) => v,
@@ -45,23 +44,46 @@ pub fn call_llm<T: AsRef<str>>(
             }
         }
     };
-    let res = match provider.as_ref().to_lowercase().as_str() {
-        "ollama" => cli_helper::run_with_spinner(|| ollama(pmt, model)),
-        "anthropic" => cli_helper::run_with_spinner(move || {
+
+    match provider.as_ref().to_lowercase().as_str() {
+        "authropic" => match cli_helper::run_with_spinner(move || {
             anthropic(api_key, model, pmt, temperature, max_tokens)
-        }),
-        "deepseek" => cli_helper::run_with_spinner(move || {
+        }) {
+            Ok(v) => match v {
+                Ok(vv) => Ok(vv),
+                Err(e) => Err(Error::Llm(e)),
+            },
+            Err(e) => Err(e),
+        },
+        "deepseek" => match cli_helper::run_with_spinner(move || {
             deep_seek(api_key, model, pmt, temperature, max_tokens)
-        }),
-        "gemini" => cli_helper::run_with_spinner(move || {
+        }) {
+            Ok(v) => match v {
+                Ok(vv) => Ok(vv),
+                Err(e) => Err(Error::Llm(e)),
+            },
+            Err(e) => Err(e),
+        },
+        "gemini" => match cli_helper::run_with_spinner(move || {
             gemini(api_key, model, pmt, temperature, max_tokens)
-        }),
-        "openai" => cli_helper::run_with_spinner(move || {
+        }) {
+            Ok(v) => match v {
+                Ok(vv) => Ok(vv),
+                Err(e) => Err(Error::Llm(e)),
+            },
+            Err(e) => Err(e),
+        },
+        "openai" => match cli_helper::run_with_spinner(move || {
             openai(api_key, model, pmt, temperature, max_tokens)
-        }),
-        _ => Err(LlmError::UndefinedProvider),
-    };
-    todo!()
+        }) {
+            Ok(v) => match v {
+                Ok(vv) => Ok(vv),
+                Err(e) => Err(Error::Llm(e)),
+            },
+            Err(e) => Err(e),
+        },
+        _ => Err(Error::Llm(LlmError::UndefinedProvider)),
+    }
 }
 
 async fn ollama(pmt: String, model: String) -> Result<String, LlmError> {

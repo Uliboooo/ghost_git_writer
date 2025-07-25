@@ -34,7 +34,6 @@ pub fn create_cmt_msg<T: AsRef<str>, U: AsRef<str>>(
         None,
         None,
     )
-    .map_err(Error::Llm)
 }
 
 // #[cfg(test)]
