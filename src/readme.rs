@@ -31,16 +31,17 @@ pub fn create_readme<T: AsRef<str>, P: AsRef<Path>, U: AsRef<str>>(
         .map(|f| f.as_ref().to_string())
         .unwrap_or("english".to_string());
     let code_base = load_codes(files)?;
+    let extra = format!(
+        " # Additional Instructions: {}",
+        extra
+            .map(|f| f.as_ref().to_string())
+            .unwrap_or("".to_string())
+    );
 
     let pmt = format!(
-        "Generate the README.md in {lang}. you must not use english {DEFAULT_PROMT} {code_base}.{}",
-        format!(
-            " # Additional Instructions: {}",
-            extra
-                .map(|f| f.as_ref().to_string())
-                .unwrap_or("".to_string())
-        )
+        "Generate the README.md in {lang}. {DEFAULT_PROMT} {code_base}.{extra}",
     );
+
     llm::call_llm(
         pmt.to_string(),
         model.provider,
