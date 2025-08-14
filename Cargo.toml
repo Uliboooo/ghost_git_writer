@@ -12,6 +12,10 @@ path = "src/main.rs"
 
 [profile.release]
 opt-level = "z"
+strip = true
+lto = true
+codegen-units = 1
+panic = "abort"
 
 [dependencies]
 clap = { version = "4.5.41", features = ["derive"] }
