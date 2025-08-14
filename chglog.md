@@ -1,5 +1,17 @@
 # change log
 
+## 0.9.1(Aug 15)
+
+- change priority of config path,
+  - primary: `~/.config/ggw/config.toml`
+  - secoundary: `~/.ggw.toml`
+- improve `sum` prompt
+  - suppress summaries other than changes
+
+## 0.9.0
+
+- config format change to toml from json
+
 ## 0.8.0
 
 - change additional prompt for `cmt`. `-c --cutom-prompt` -> `-e --extra`.

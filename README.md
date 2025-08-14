@@ -12,9 +12,35 @@ at ver.0.2.1
 
 https://www.youtube.com/watch?v=6l42h0nn5Sk -->
 
+## installing
+
+```zsh
+cargo install ghost_git_writer
+```
+
 ## usage
 
-### create a git commit msg
+```zsh
+ggw [OPTIONS] <COMMAND>
+```
+
+- OPTIONS
+  - `-y, --yes`: all yes without confirm
+- COMMAND
+  - `cmt`: generate a git commit message from git diff & run `git commit`
+  - `rdm`: generate a README from forder and files by `-d <dir>` or `--source <file path list>`
+  - `sum`: summazrize about changes from previous version code
+  - `cst`: send custom message to llm service
+- GLOBAL OPTIONS
+  - `-m --model <MODEL>`: select model. split provider and llm model by '/'. e.g. `-m gemini/gemini-2.0-flash`
+  - `-a --alias <ALIAS>`: select model from alias set in `~/.ggw.toml` or `~/.ggw/ggw.toml`. e.g. `-a gemini`
+  - `-p --path <PATH>`: work path. use this to specify a directory other than current one.
+  - `-o --one-line`: out only one line.
+  - `-l --lang <LANG>`: specify language for llm output. e.g. `-l japanese`
+  - `-e --extra <EXTRA>`: extra prompt. append `<EXTRA>` to end of default prompt.
+  - `-c --auto-commit`: allow auto git commit
+
+### Examples
 
 ```bash
 # write a git commit msg from diff.
@@ -28,90 +54,11 @@ created msg:docs: Update README with usage examples
 do you edit msg?(y/n)n # if chose `y`, you can write a new commit yourself
 
 continue?(y/n)>y
-```
 
-## subcommand & options
+------------------------------------------------------
 
-subcommands
-
-```bash
-cmt   gen commit msg and git commit
-rdm   create a readme
-sum   out diff summary
-cst   use custom prompt
-help  Print this message or the help of the given subcommand(s)
-```
-
-root options
-
-```bash
-Options:
-  -y, --yes
-  -h, --help     Print help
-  -V, --version  Print version
-```
-
-`cmt` options
-
-```bash
-Usage: ggw cmt [OPTIONS]
-
-Options:
-  -m, --model <MODEL>  -m gemini/gemini-2.0-flash
-  -a, --alias <ALIAS>  registed alias
-  -p, --path <PATH>    work path
-  -o, --one-line       print only result
-  -l, --lang <LANG>    change output language
-  -e, --extra <EXTRA>  extra prompt
-  -c, --auto-commit    allow auto git commit
-  -h, --help           Print help
-```
-
-`rdm` options
-
-```bash
-Usage: ggw rdm [OPTIONS]
-
-Options:
-  -m, --model <MODEL>               -m gemini/gemini-2.0-flash
-  -a, --alias <ALIAS>               registed alias
-  -p, --path <PATH>                 work path
-  -o, --one-line                    print only result
-  -l, --lang <LANG>                 change output language
-  -e, --extra <EXTRA>               extra prompt
-  -s, --sources <SOURCE_PATH_LIST>
-  -d, --directory <DIR>
-  -m, --allow-merge
-  -o, --over-write
-  -h, --help                        Print help
-```
-
-`sum` options
-
-```bash
-Usage: ggw sum [OPTIONS]
-
-Options:
-  -m, --model <MODEL>  -m gemini/gemini-2.0-flash
-  -a, --alias <ALIAS>  registed alias
-  -p, --path <PATH>    work path
-  -o, --one-line       print only result
-  -l, --lang <LANG>    change output language
-  -e, --extra <EXTRA>  extra prompt
-  -h, --help           Print help
-```
-
-`cst` ottions
-
-```bash
-Options:
-  -m, --model <MODEL>  -m gemini/gemini-2.0-flash
-  -a, --alias <ALIAS>  registed alias
-  -p, --path <PATH>    work path
-  -o, --one-line       print only result
-  -l, --lang <LANG>    change output language
-  -e, --extra <EXTRA>  extra prompt
-  -h, --help           Print help
+# you can use only this command if you set alias and default alias in ggw config.
+ggw cmt
 ```
 
 ## result exmaples
@@ -140,9 +87,22 @@ enviroment variable list
 |  openai   |   `GGW_OPENAI_API`   |
 | deepseek  |  `GGW_DEEPSEEK_API`  |
 
-## Config format (v.0.8.1)
+## Config format (v.0.9.0~)
 
-- custom_prompt feature is not yet completed
+```toml: ~/.ggw/.ggw.toml
+[prompt.custom_prompt]
+test = "this is test"
+
+[llm]
+default_alias = "ge"
+
+[llm.model_alias.ge]
+provider = "gemini"
+model = "gemini-2.0-flash"
+
+```
+
+## old Config format (~v.0.8.1)
 
 ```json
 {

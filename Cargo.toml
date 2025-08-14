@@ -1,7 +1,7 @@
 [package]
 name = "ghost_git_writer"
 description = "ggw provide that git commit msg and diff summary etc... by LLM"
-version = "0.8.4"
+version = "0.9.1"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 authors = ["Uliboooo uliboulibo@gmail.com"]
@@ -26,3 +26,4 @@ derive-getters = "0.5.0"
 chrono = "0.4.41"
 dialoguer = "0.11.0"
 home = "0.5.11"
+easy_storage = "0.1.0"

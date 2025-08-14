@@ -1,4 +1,4 @@
-use crate::{Cli, Error, RootOption, storage::Storage};
+use crate::{Cli, Error, RootOption};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::Path};
 
@@ -25,7 +25,7 @@ impl Config {
     }
 }
 
-impl<P: AsRef<Path>> Storage<P> for Config {}
+impl<P: AsRef<Path>> easy_storage::Storeable<P> for Config {}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Prompt {
@@ -174,9 +174,11 @@ impl Model {
 
 #[cfg(test)]
 mod tests {
+    use easy_storage::Storeable;
+
     use crate::{
         config::{Config, Llm, Model, Prompt},
-        storage::Storage,
+        // storage::Storage,
     };
     use std::{collections::HashMap, env};
 
@@ -186,20 +188,22 @@ mod tests {
         pmtss.insert("test".to_string(), "this is test".to_string());
         let pmt: Prompt = Prompt::new(pmtss);
 
-        let alias = Llm::new(None, {
+        let alias = Llm::new(Some("ge".to_string()), {
             let model = Model::new("gemini", "gemini-2.0-flash", None, None);
             let mut lls = HashMap::new();
             lls.insert("ge".to_string(), model);
             lls
         });
-        let save_path = env::current_dir().unwrap().join("test_config.json");
-        let res = Config::new(pmt, alias).map(|f| f.save(save_path, true));
-        let print_res = match res {
-            Some(v) => match v {
-                Ok(v) => "success".to_string(),
-                Err(e) => e.to_string(),
-            },
-            None => "not_found".to_string(),
+        let save_path = env::current_dir().unwrap().join("test_config.toml");
+        // let res =
+        // Config::new(pmt, alias).map(|f| f.save(save_path, true, easy_storage::Format::Toml));
+
+        let res = Config::new(pmt, alias).unwrap();
+        let save_res = res.save(save_path, true, easy_storage::Format::Toml);
+
+        let print_res = match save_res {
+            Ok(_) => "success".to_string(),
+            Err(e) => e.to_string(),
         };
         println!("{print_res}");
     }

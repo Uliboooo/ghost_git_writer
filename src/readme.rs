@@ -38,9 +38,7 @@ pub fn create_readme<T: AsRef<str>, P: AsRef<Path>, U: AsRef<str>>(
             .unwrap_or("".to_string())
     );
 
-    let pmt = format!(
-        "Generate the README.md in {lang}. {DEFAULT_PROMT} {code_base}.{extra}",
-    );
+    let pmt = format!("Generate the README.md in {lang}. {DEFAULT_PROMT} {code_base}.{extra}",);
 
     llm::call_llm(
         pmt.to_string(),
