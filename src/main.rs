@@ -15,6 +15,7 @@ use clap::{Args, Parser, Subcommand};
 use config::Model;
 use custom_prompt::custom_prompt;
 use dialoguer::Input;
+use easy_storage::Storeable;
 use get_input::yes_no;
 use std::{
     env::{self},
@@ -22,7 +23,6 @@ use std::{
     fs, io,
     path::{Path, PathBuf},
 };
-use storage::Storage;
 use sum::summarize_diff;
 
 const ANTHROPIC_API: &str = "GGW_ANTHROPIC_API";
@@ -35,7 +35,7 @@ pub enum Error {
     GitE(git2::Error),
     Llm(llm::LlmError),
     EnvE(env::VarError),
-    StorageE(storage::Error),
+    StorageE(easy_storage::Error),
     FailedParseCli,
     IoE(io::Error),
     NotFoundFile,
@@ -308,8 +308,8 @@ fn resolve_work_path<T: RootOption>(option: &T) -> Result<PathBuf, Error> {
 fn resolve_config_path() -> Result<PathBuf, Error> {
     let home_path = home::home_dir().ok_or(Error::NotFoundHome)?;
 
-    let primary = home_path.join(".ggw.json");
-    let secondary = home_path.join(".ggw").join(".ggw.json");
+    let primary = home_path.join(".ggw.toml");
+    let secondary = home_path.join(".ggw").join(".ggw.toml");
 
     if primary.exists() {
         Ok(primary)
@@ -333,7 +333,9 @@ fn main() -> Result<(), Error> {
 
     println!("{conf_path:?}");
 
-    let conf = config::Config::open::<config::Config>(conf_path).map_err(Error::StorageE)?;
+    // let conf = config::Config::open::<config::Config>(conf_path).map_err(Error::StorageE)?;
+    let conf =
+        config::Config::load(conf_path, easy_storage::Format::Toml).map_err(Error::StorageE)?;
 
     let work_path = resolve_work_path(&cli.subcommand)?;
 
