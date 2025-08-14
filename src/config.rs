@@ -1,4 +1,4 @@
-use crate::{Cli, Error, RootOption, storage::Storage};
+use crate::{Cli, Error, RootOption};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::Path};
 

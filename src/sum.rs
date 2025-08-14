@@ -1,8 +1,8 @@
 use crate::{Error, Model, llm};
 
-const DEFAULT_PROMPT: &str = "Read the following diff and summarize the changes.
+const DEFAULT_PROMPT: &str = "summarize the git diff changes.
 List the key modifications, what was added, removed, or modified, and briefly explain their purpose or impact if possible.
-about only changes. must not write about target project. you don't readme writer, you summarize diff changes.
+about only changes. must not write about project. you don't readme writer, you summarize diff changes.
 diff:";
 
 pub fn summarize_diff<T: AsRef<str>, U: AsRef<str>>(

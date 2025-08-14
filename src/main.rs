@@ -7,7 +7,6 @@ mod git;
 mod llm;
 mod read_codes;
 mod readme;
-mod storage;
 mod sum;
 
 use chrono::Local;
@@ -288,28 +287,23 @@ fn resolve_work_path<T: RootOption>(option: &T) -> Result<PathBuf, Error> {
 /// This function searches for configuration files in the user's home directory
 /// in the following order of preference:
 ///
-/// 1. `~/.ggw.json` - Primary configuration file in JSON format
-/// 2. `~/.ggw/.ggw.json` - Secondary configuration file in the `.ggw` subdirectory
+/// 1. `~/.config/ggw/config.toml` - Primary
+/// 2. `~/.ggw.toml` - Secondary
 ///
 /// # Returns
 ///
 /// * `Ok(PathBuf)` - The path to the first existing configuration file found
 /// * `Err(Error::NotFoundHome)` - If the home directory cannot be determined
 /// * `Err(Error::NotFoundConfig)` - If no configuration file is found in any of the expected locations
-///
-/// # Examples
-///
-/// ```rust
-/// match resolve_config_path() {
-///     Ok(config_path) => println!("Found config at: {}", config_path.display()),
-///     Err(e) => eprintln!("Config resolution failed: {}", e),
-/// }
-/// ```
 fn resolve_config_path() -> Result<PathBuf, Error> {
     let home_path = home::home_dir().ok_or(Error::NotFoundHome)?;
 
-    let primary = home_path.join(".ggw.toml");
-    let secondary = home_path.join(".ggw").join(".ggw.toml");
+    let primary = home_path
+        .join(".config")
+        .join("ggw")
+        .join("config")
+        .with_extension("toml");
+    let secondary = home_path.join(".ggw").with_extension("toml");
 
     if primary.exists() {
         Ok(primary)
@@ -321,7 +315,7 @@ fn resolve_config_path() -> Result<PathBuf, Error> {
 }
 
 #[test]
-fn res() {
+fn show_config_path() {
     let res = resolve_config_path();
     println!("{res:?}");
 }
@@ -329,17 +323,14 @@ fn res() {
 fn main() -> Result<(), Error> {
     let cli = Cli::parse();
 
+    // set path
     let conf_path = resolve_config_path()?;
-
-    println!("{conf_path:?}");
-
-    // let conf = config::Config::open::<config::Config>(conf_path).map_err(Error::StorageE)?;
-    let conf =
-        config::Config::load(conf_path, easy_storage::Format::Toml).map_err(Error::StorageE)?;
-
     let work_path = resolve_work_path(&cli.subcommand)?;
 
-    let use_model = Model::to_model(cli.clone(), conf)?;
+    let loaded_config =
+        config::Config::load(conf_path, easy_storage::Format::Toml).map_err(Error::StorageE)?;
+
+    let use_model = Model::to_model(cli.clone(), loaded_config)?;
 
     let resolved_api_key = resolve_api_key(&use_model)
         .transpose()
