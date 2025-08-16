@@ -20,10 +20,11 @@ Please read the following codebase and generate a README.md that includes:
 
 Here is the project code or file list:";
 
-pub fn create_readme<T: AsRef<str>, P: AsRef<Path>, U: AsRef<str>>(
+pub fn create_readme<P: AsRef<Path>, U: AsRef<str>>(
     files: &Vec<P>,
     model: Model,
-    api_key: Option<T>,
+    // api_key: Option<T>,
+    req_config: llm::ReqConfig,
     lang: Option<U>,
     extra: Option<U>,
 ) -> Result<String, Error> {
@@ -44,9 +45,8 @@ pub fn create_readme<T: AsRef<str>, P: AsRef<Path>, U: AsRef<str>>(
         pmt.to_string(),
         model.provider,
         model.model,
-        api_key.map(|f| f.as_ref().to_string()),
-        None,
-        None,
+        // api_key.map(|f| f.as_ref().to_string()),
+        req_config,
     )
 }
 

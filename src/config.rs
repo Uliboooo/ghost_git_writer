@@ -72,49 +72,55 @@ pub struct Model {
     pub model: String,
     pub temperature: Option<f32>,
     pub max_tokens: Option<u32>,
+    pub base_url: Option<(String, u16)>,
 }
 
-impl Model {
-    pub fn new<T: AsRef<str>>(
-        pro: T,
-        model: T,
-        temp: Option<f32>,
-        max_tokens: Option<u32>,
-    ) -> Self {
-        Self {
-            provider: pro.as_ref().to_string(),
-            model: model.as_ref().to_string(),
-            temperature: temp,
-            max_tokens,
-        }
-    }
-}
+// impl Model {
+//     pub fn new<T: AsRef<str>>(
+//         pro: T,
+//         model: T,
+//         temp: Option<f32>,
+//         max_tokens: Option<u32>,
+//         base_url: Option<(String, u16)>,
+//     ) -> Self {
+//         Self {
+//             provider: pro.as_ref().to_string(),
+//             model: model.as_ref().to_string(),
+//             temperature: temp,
+//             max_tokens,
+//             base_url,
+//         }
+//     }
+// }
 
 impl TryFrom<Cli> for Model {
     type Error = Error;
 
     fn try_from(value: Cli) -> Result<Self, Self::Error> {
-        match value.get_root_options().model {
+        let root_ops = value.get_root_options();
+        let base_url = root_ops.resolve_base_url().ok();
+
+        match root_ops.model {
             Some(v) => match v.split_once('/') {
                 Some(v) => Ok((v.0.to_string(), v.1.to_string())),
                 None => Err(Error::InvalidModelFormat(v)),
             },
             None => Err(Error::FailedParseCli),
         }
-        .map(|f| Model::new(f.0, f.1, None, None))
+        .map(|f| Model::new(f.0, f.1, root_ops.temp, root_ops.max_tokens, base_url))
     }
 }
 
-impl TryFrom<String> for Model {
-    type Error = Error;
+// impl TryFrom<String> for Model {
+//     type Error = Error;
 
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        match value.split_once('/') {
-            Some(v) => Ok(Model::new(v.0, v.1, None, None)),
-            None => Err(Error::FailedParseCli),
-        }
-    }
-}
+//     fn try_from(value: String) -> Result<Self, Self::Error> {
+//         match value.split_once('/') {
+//             Some(v) => Ok(Model::new(v.0, v.1, None, None)),
+//             None => Err(Error::FailedParseCli),
+//         }
+//     }
+// }
 
 impl TryFrom<Config> for Model {
     type Error = Error;
@@ -156,18 +162,33 @@ impl Model {
     /// let config = Config::load()?;
     /// let model = Model::to_model(cli, config)?;
     /// ```
-    pub fn to_model(value: Cli, config: Config) -> Result<Model, Error> {
-        // if exist arg `-m`
-        match value.get_root_options().model {
-            // if exist arg `-m`
-            Some(mm) => Model::try_from(mm),
-            None => match value.get_root_options().alias {
-                // if exists `-a` arg
-                Some(alias_name) => config
-                    .get_model_by_alias(alias_name.clone())
-                    .ok_or(Error::NotFoundModelAlias(alias_name)),
-                None => Model::try_from(config),
-            },
+    // pub fn to_model(value: Cli, config: Config) -> Result<Model, Error> {
+    //     // if exist arg `-m`
+    //     match value.get_root_options().model {
+    //         // if exist arg `-m`
+    //         Some(mm) => Model::try_from(mm),
+    //         None => match value.get_root_options().alias {
+    //             // if exists `-a` arg
+    //             Some(alias_name) => config
+    //                 .get_model_by_alias(alias_name.clone())
+    //                 .ok_or(Error::NotFoundModelAlias(alias_name)),
+    //             None => Model::try_from(config),
+    //         },
+    //     }
+    // }
+
+    pub fn new(
+        prov_model: (String, String),
+        temp: Option<f32>,
+        max_tokens: Option<u32>,
+        base_url: Option<(String, u16)>,
+    ) -> Self {
+        Self {
+            provider: prov_model.0,
+            model: prov_model.1,
+            temperature: temp,
+            max_tokens,
+            base_url,
         }
     }
 }
@@ -189,7 +210,7 @@ mod tests {
         let pmt: Prompt = Prompt::new(pmtss);
 
         let alias = Llm::new(Some("ge".to_string()), {
-            let model = Model::new("gemini", "gemini-2.0-flash", None, None);
+            let model = Model::new("gemini", "gemini-2.0-flash", None, None, None);
             let mut lls = HashMap::new();
             lls.insert("ge".to_string(), model);
             lls

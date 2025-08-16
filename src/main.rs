@@ -44,6 +44,8 @@ pub enum Error {
     NotFoundConfig,
     NotFoundDefaultModel,
     NotFoundModelAlias(String),
+    FailedParseSlash(String),
+    FailedParseToNum(String),
 }
 
 impl Display for Error {
@@ -62,6 +64,8 @@ impl Display for Error {
             Error::StorageE(error) => write!(f, "storage error: {error}"),
             Error::NotFoundDefaultModel => write!(f, ""),
             Error::NotFoundModelAlias(model) => write!(f, "not found model alias {model}"),
+            Error::FailedParseSlash(e) => write!(f, "Invalid format: {e}"),
+            Error::FailedParseToNum(d) => write!(f, "failed to parse num {d}"),
         }
     }
 }
@@ -89,6 +93,15 @@ struct RootOptions {
     )]
     alias: Option<String>,
 
+    #[arg(short = 'b', long = "base-url", help = "-b \"100.100.100.100/11434\"")]
+    base_url: Option<String>,
+
+    #[arg(long = "temp", help = "temperature of model")]
+    temp: Option<f32>,
+
+    #[arg(long = "max-tokens")]
+    max_tokens: Option<u32>,
+
     #[arg(short = 'p', long = "path", help = "work path")]
     path: Option<String>,
 
@@ -100,6 +113,26 @@ struct RootOptions {
 
     #[arg(short = 'e', long = "extra", help = "extra prompt")]
     extra: Option<String>,
+}
+
+impl RootOptions {
+    fn resolve_base_url(&self) -> Result<(String, u16), Error> {
+        resolve_slash(self.base_url.clone().unwrap()).map(|f| {
+            let i = f.1.parse::<u16>();
+            let res = match i {
+                Ok(v) => Ok((f.0, v)),
+                Err(_) => Err(Error::FailedParseToNum(f.1)),
+            };
+            res
+        })?
+    }
+
+    // fn resolve_slash<T: AsRef<str>>(input: T) -> Result<(String, String), Error> {
+    //     match input.as_ref().split_once('/') {
+    //         Some(v) => Ok((v.0.to_string(), v.1.to_string())),
+    //         None => Err(Error::FailedParseSlash(input.as_ref().to_string())),
+    //     }
+    // }
 }
 
 #[derive(Debug, Parser, Clone)]
@@ -243,17 +276,15 @@ impl RootOption for Cst {
 fn commit_from_gitdiff<T: AsRef<Path>, U: AsRef<str>>(
     project_path: &T,
     model: Model,
-    api_key: Option<U>,
+    // api_key: Option<U>,
+    req_config: llm::ReqConfig,
     lang: Option<U>,
     extra: Option<U>,
 ) -> Result<String, Error> {
     let git_diff = git::get_diff(project_path)?;
     let commit_msg = cmt_msg::create_cmt_msg(
-        git_diff,
-        model,
-        api_key.map(|f| f.as_ref().to_string()),
-        lang,
-        extra,
+        git_diff, model, // api_key.map(|f| f.as_ref().to_string()),
+        req_config, lang, extra,
     )?;
 
     Ok(commit_msg)
@@ -320,6 +351,13 @@ fn show_config_path() {
     println!("{res:?}");
 }
 
+fn resolve_slash<T: AsRef<str>>(input: T) -> Result<(String, String), Error> {
+    match input.as_ref().split_once('/') {
+        Some(v) => Ok((v.0.to_string(), v.1.to_string())),
+        None => Err(Error::FailedParseSlash(input.as_ref().to_string())),
+    }
+}
+
 fn main() -> Result<(), Error> {
     let cli = Cli::parse();
 
@@ -330,11 +368,27 @@ fn main() -> Result<(), Error> {
     let loaded_config =
         config::Config::load(conf_path, easy_storage::Format::Toml).map_err(Error::StorageE)?;
 
-    let use_model = Model::to_model(cli.clone(), loaded_config)?;
+    // let use_model = Model::to_model(cli.clone(), loaded_config)?;
+    let root_ops = cli.get_root_options();
+    let use_model = Model::new(
+        // resolve_slash(root_ops.model)?,
+        root_ops
+            .clone()
+            .model
+            .map(|f| resolve_slash(f).ok())
+            .flatten()
+            .unwrap(),
+        root_ops.temp,
+        root_ops.max_tokens,
+        root_ops.resolve_base_url().ok(),
+    );
+    let base_url = cli.get_root_options().resolve_base_url()?;
 
     let resolved_api_key = resolve_api_key(&use_model)
         .transpose()
         .map_err(Error::EnvE)?;
+
+    let req_config = llm::ReqConfig::new(resolved_api_key, None, None, Some(base_url));
 
     match &cli.subcommand {
         Commands::Cmt(commit) => {
@@ -342,7 +396,8 @@ fn main() -> Result<(), Error> {
             let msg = commit_from_gitdiff(
                 &work_path,
                 use_model,
-                resolved_api_key,
+                // resolved_api_key,
+                req_config,
                 cli.get_root_options().lang, // commit.auto_commit,
                 cli.get_root_options().extra,
             )?;
@@ -379,7 +434,8 @@ fn main() -> Result<(), Error> {
             let sum = summarize_diff(
                 git_diff,
                 use_model,
-                resolved_api_key,
+                // resolved_api_key,
+                req_config,
                 cli.get_root_options().lang,
                 cli.get_root_options().extra,
             )?;
@@ -419,7 +475,8 @@ fn main() -> Result<(), Error> {
             let readme_s = readme::create_readme(
                 resolved_path_list.as_ref(),
                 use_model,
-                resolved_api_key,
+                // resolved_api_key,
+                req_config,
                 lang,
                 cli.get_root_options().extra,
             )?;
@@ -459,10 +516,11 @@ fn main() -> Result<(), Error> {
             if !cli.get_root_options().oneline {
                 println!("<<<custom prompt mode>>>");
             }
+            // base_url
             let res = custom_prompt(
                 cst.clone().preset,
                 use_model,
-                resolved_api_key,
+                req_config,
                 cli.get_root_options().extra,
             )?;
             println!("\n{res}");

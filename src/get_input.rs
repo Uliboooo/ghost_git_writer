@@ -1,4 +1,4 @@
-use std::io::{stdout, Write};
+use std::io::{Write, stdout};
 
 /// get user's input. return String.
 ///

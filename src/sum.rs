@@ -8,7 +8,8 @@ diff:";
 pub fn summarize_diff<T: AsRef<str>, U: AsRef<str>>(
     diff: T,
     model: Model,
-    api_key: Option<T>,
+    // api_key: Option<T>,
+    req_config: llm::ReqConfig,
     lang: Option<U>,
     extra: Option<U>,
 ) -> Result<String, Error> {
@@ -30,8 +31,7 @@ pub fn summarize_diff<T: AsRef<str>, U: AsRef<str>>(
         pmt.to_string(),
         model.provider,
         model.model,
-        api_key.map(|f| f.as_ref().to_string()),
-        None,
-        None,
+        // api_key.map(|f| f.as_ref().to_string()),
+        req_config,
     )
 }
