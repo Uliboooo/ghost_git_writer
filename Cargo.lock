@@ -315,9 +315,9 @@ checksum = "1c7a8fb8a9fbf66c1f703fe16184d10ca0ee9d23be5b4436400408ba54a95005"
 
 [[package]]
 name = "easy_storage"
-version = "0.1.0"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "deff0197e7518987a33281e2280e4e5a458d126c0595e00723d8610a2a205871"
+checksum = "b96c11000eef8ff548f42cf358dcdfe10ca25c182a65b9fb9f5ec06291639425"
 dependencies = [
  "serde",
  "serde_json",

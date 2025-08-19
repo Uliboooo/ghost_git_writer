@@ -1,307 +1,138 @@
-use std::fs::OpenOptions;
-
-use crate::{Error, cli_helper};
+use derive_getters::Getters;
 use llm_api_rs::{
-    Anthropic, ChatCompletionRequest, ChatMessage, Gemini, LlmApiError, LlmProvider, OpenAI,
+    self, LlmProvider,
+    core::{ChatCompletionRequest, ChatMessage},
+    providers::{Anthropic, DeepSeek, Gemini, OpenAI},
 };
 use ollama_rs::{Ollama, generation::completion::request::GenerationRequest};
 
-#[derive(Debug)]
-pub enum LlmError {
-    Ollama(ollama_rs::error::OllamaError),
-    Other(LlmApiError),
-    UndefinedProvider,
-    NotFoundAPIKey,
+use crate::cli_helper;
+
+pub enum Error {
+    NotSuppoeredProvider,
+    FailedGetAPIKey,
+    FailedGetBaseURL,
+    ChatCompletionError(String),
+    CliHelperError(String),
+    OllamaE(ollama_rs::error::OllamaError),
 }
 
-impl std::fmt::Display for LlmError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            LlmError::Ollama(e) => write!(f, "Ollama error: {e}"),
-            LlmError::Other(e) => write!(f, "Other error: {e}"),
-            LlmError::UndefinedProvider => write!(f, "Undefined LLM provider"),
-            LlmError::NotFoundAPIKey => write!(f, "API key not found"),
+impl From<cli_helper::Error> for Error {
+    fn from(e: cli_helper::Error) -> Self {
+        match e {
+            cli_helper::Error::Io(io_err) => Error::CliHelperError(io_err.to_string()),
+        }
+    }
+}
+impl From<ollama_rs::error::OllamaError> for Error {
+    fn from(value: ollama_rs::error::OllamaError) -> Self {
+        Self::OllamaE(value)
+    }
+}
+
+#[derive(Debug, PartialEq, PartialOrd, Clone)]
+pub enum Provider {
+    Ollama,
+    OpenAI,
+    Google,
+    Anthropic,
+    DeepSeek,
+}
+
+impl TryFrom<&str> for Provider {
+    type Error = Error;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value.to_lowercase().as_str() {
+            "ollama" => Ok(Self::Ollama),
+            "openai" => Ok(Self::OpenAI),
+            "google" => Ok(Self::Google),
+            "authropic" => Ok(Self::Anthropic),
+            "deepseek" => Ok(Self::DeepSeek),
+            _ => Err(Error::NotSuppoeredProvider),
         }
     }
 }
 
-#[derive(Debug, derive_getters::Getters)]
-pub struct ReqConfig {
+impl Provider {
+    fn is<T: AsRef<str>>(&self, prov: T) -> Result<bool, Error> {
+        let p = Provider::try_from(prov.as_ref())?;
+        Ok(self == &p)
+    }
+}
+
+#[derive(Debug, Getters, Clone)]
+pub struct LlmReqInfo {
+    provider: Provider,
+    model: String,
     api_key: Option<String>,
-    temperature: Option<f32>,
+    temp: Option<f32>,
     max_tokens: Option<u32>,
     base_url: Option<(String, u16)>,
 }
 
-impl ReqConfig {
-    pub fn new(
-        api_key: Option<String>,
-        temp: Option<f32>,
-        max_t: Option<u32>,
-        base_url: Option<(String, u16)>,
-    ) -> Self {
-        Self {
-            api_key,
-            temperature: temp,
-            max_tokens: max_t,
-            base_url,
-        }
+impl LlmReqInfo {
+    pub fn resolve_api_key(&self) -> Result<String, Error> {
+        Ok(match self.api_key.clone() {
+            Some(key) => key,
+            None => {
+                if self.provider().is("ollama")? {
+                    return Err(Error::FailedGetAPIKey);
+                } else {
+                    String::new()
+                }
+            }
+        })
     }
 }
 
-pub fn call_llm<T: AsRef<str>>(
-    pmt: T,
-    provider: T,
-    model: T,
-    req_config: ReqConfig,
-    // api_key: Option<String>,
-    // temperature: Option<f32>,
-    // max_tokens: Option<u32>,
-    // base_url: Option<(String, u16)>,
-) -> Result<String, Error> {
-    let model = model.as_ref().to_string();
-    let pmt = pmt.as_ref().to_string();
+pub async fn call_llm<T: AsRef<str>>(llm_info: LlmReqInfo, prompt: T) -> Result<String, Error> {
+    let api = llm_info.resolve_api_key()?;
 
-    // let api_key = match req_config.api_key() {
-    //     Some(v) => v,
-    //     None => {
-    //         if provider.as_ref().to_lowercase() != "ollama" {
-    //             return Err(Error::Llm(LlmError::NotFoundAPIKey));
-    //         } else {
-    //             String::new()
-    //         }
-    //     }
-    // };
-
-    let api_key = req_config
-        .api_key()
-        .clone()
-        .or_else(|| {
-            if provider.as_ref().eq_ignore_ascii_case("ollama") {
-                Some(String::new())
-            } else {
-                None
-            }
-        })
-        .ok_or(Error::Llm(LlmError::NotFoundAPIKey))?;
-
-    let temp = *req_config.temperature();
-    let m_token = *req_config.max_tokens();
-    let base_url = req_config
-        .base_url()
-        .clone()
-        .unwrap_or(("http://localhost".to_string(), 11434));
-
-    match provider.as_ref().to_lowercase().as_str() {
-        "authropic" => match cli_helper::run_with_spinner(move || {
-            anthropic(api_key, model, pmt, temp, m_token)
-        }) {
-            Ok(v) => match v {
-                Ok(vv) => Ok(vv),
-                Err(e) => Err(Error::Llm(e)),
-            },
-            Err(e) => Err(e),
-        },
-        "deepseek" => match cli_helper::run_with_spinner(move || {
-            deep_seek(api_key, model, pmt, temp, m_token)
-        }) {
-            Ok(v) => match v {
-                Ok(vv) => Ok(vv),
-                Err(e) => Err(Error::Llm(e)),
-            },
-            Err(e) => Err(e),
-        },
-        "gemini" => {
-            match cli_helper::run_with_spinner(move || gemini(api_key, model, pmt, temp, m_token)) {
-                Ok(v) => match v {
-                    Ok(vv) => Ok(vv),
-                    Err(e) => Err(Error::Llm(e)),
-                },
-                Err(e) => Err(e),
-            }
+    // llm_api_rs isn't support ollama
+    if llm_info.provider() == &Provider::Ollama {
+        let base_url = llm_info.clone().base_url.ok_or(Error::FailedGetBaseURL)?;
+        let o_res = Ollama::new(base_url.0, base_url.1);
+        let res = o_res
+            .generate(GenerationRequest::new(
+                llm_info.clone().model,
+                prompt.as_ref(),
+            ))
+            .await;
+        match res {
+            Ok(v) => Ok(v.response.to_string()),
+            Err(e) => Err(Error::OllamaE(e)),
         }
-        "openai" => {
-            match cli_helper::run_with_spinner(move || openai(api_key, model, pmt, temp, m_token)) {
-                Ok(v) => match v {
-                    Ok(vv) => Ok(vv),
-                    Err(e) => Err(Error::Llm(e)),
-                },
-                Err(e) => Err(e),
+    } else {
+        let client: Box<dyn LlmProvider + Send> = match llm_info.provider {
+            Provider::OpenAI => Box::new(OpenAI::new(api)),
+            Provider::Google => Box::new(Gemini::new(api)),
+            Provider::Anthropic => Box::new(Anthropic::new(api)),
+            Provider::DeepSeek => Box::new(DeepSeek::new(api)),
+            _ => return Err(Error::NotSuppoeredProvider),
+        };
+
+        let request = ChatCompletionRequest {
+            model: llm_info.model().clone(),
+            messages: vec![ChatMessage {
+                role: "user".to_string(),
+                content: prompt.as_ref().to_string(),
+            }],
+            temperature: *llm_info.temp(),
+            max_tokens: *llm_info.max_tokens(),
+        };
+
+        cli_helper::run_with_spinner(move || async move {
+            match client.chat_completion(request).await {
+                Ok(response) => {
+                    if let Some(choice) = response.choices.get(0) {
+                        Ok(choice.message.content.clone())
+                    } else {
+                        Ok(String::new())
+                    }
+                }
+                Err(e) => Err(Error::ChatCompletionError(e.to_string())),
             }
-        }
-        "ollama" => match cli_helper::run_with_spinner(move || ollama(pmt, model, base_url)) {
-            Ok(v) => match v {
-                Ok(vv) => Ok(vv),
-                Err(e) => Err(Error::Llm(e)),
-            },
-            Err(e) => Err(e),
-        },
-        _ => Err(Error::Llm(LlmError::UndefinedProvider)),
+        })?
     }
 }
-
-async fn ollama(pmt: String, model: String, base_url: (String, u16)) -> Result<String, LlmError> {
-    // let ollama = Ollama::default();
-    let ollama = Ollama::new(base_url.0, base_url.1);
-
-    let res = ollama.generate(GenerationRequest::new(model, pmt)).await;
-    match res {
-        Ok(v) => Ok(v.response.to_string()),
-        Err(e) => Err(LlmError::Ollama(e)),
-    }
-}
-
-async fn anthropic<T: AsRef<str>>(
-    api_key: T,
-    model: String,
-    pmt: String,
-    tmp: Option<f32>,
-    max_tokens: Option<u32>,
-) -> Result<String, LlmError> {
-    let client = Anthropic::new(api_key.as_ref().to_string());
-
-    let req = ChatCompletionRequest {
-        model,
-        messages: vec![ChatMessage {
-            role: "user".to_string(),
-            content: pmt,
-        }],
-        temperature: tmp,
-        max_tokens,
-    };
-    client
-        .chat_completion(req)
-        .await
-        .map(|f| {
-            f.choices
-                .iter()
-                .map(|f| f.message.content.to_string())
-                .collect::<String>()
-        })
-        .map_err(LlmError::Other)
-}
-
-async fn gemini<T: AsRef<str>>(
-    api_key: T,
-    model: String,
-    pmt: String,
-    tmp: Option<f32>,
-    max_tokens: Option<u32>,
-) -> Result<String, LlmError> {
-    let client = Gemini::new(api_key.as_ref().to_string());
-
-    let req = ChatCompletionRequest {
-        model,
-        messages: vec![ChatMessage {
-            role: "user".to_string(),
-            content: pmt,
-        }],
-        temperature: tmp,
-        max_tokens,
-    };
-    client
-        .chat_completion(req)
-        .await
-        .map(|f| {
-            f.choices
-                .iter()
-                .map(|f| f.message.content.to_string())
-                .collect::<String>()
-        })
-        .map_err(LlmError::Other)
-}
-
-async fn openai<T: AsRef<str>>(
-    api_key: T,
-    model: String,
-    pmt: String,
-    tmp: Option<f32>,
-    max_tokens: Option<u32>,
-) -> Result<String, LlmError> {
-    let client = OpenAI::new(api_key.as_ref().to_string());
-    let req = ChatCompletionRequest {
-        model,
-        messages: vec![ChatMessage {
-            role: "user".to_string(),
-            content: pmt,
-        }],
-        temperature: tmp,
-        max_tokens,
-    };
-    client
-        .chat_completion(req)
-        .await
-        .map(|f| {
-            f.choices
-                .iter()
-                .map(|f| f.message.content.to_string())
-                .collect::<String>()
-        })
-        .map_err(LlmError::Other)
-}
-
-async fn deep_seek<T: AsRef<str>>(
-    api_key: T,
-    model: String,
-    pmt: String,
-    tmp: Option<f32>,
-    max_tokens: Option<u32>,
-) -> Result<String, LlmError> {
-    let client = OpenAI::new(api_key.as_ref().to_string());
-    let req = ChatCompletionRequest {
-        model,
-        messages: vec![ChatMessage {
-            role: "user".to_string(),
-            content: pmt,
-        }],
-        temperature: tmp,
-        max_tokens,
-    };
-    client
-        .chat_completion(req)
-        .await
-        .map(|f| {
-            f.choices
-                .iter()
-                .map(|f| f.message.content.to_string())
-                .collect::<String>()
-        })
-        .map_err(LlmError::Other)
-}
-
-// #[cfg(test)]
-// mod tests {
-//     use crate::llm::{call_llm, gemini};
-//     use std::env;
-//     use tokio::runtime::Runtime;
-
-//     #[test]
-//     fn call_test() {
-//         let res = call_llm(
-//             "hello",
-//             "gemini",
-//             "gemini-2.0-flash",
-//             Some(env::var("GEMINI_API_KEY").unwrap().to_string()),
-//             None,
-//             None,
-//         );
-
-//         println!("res: {res:?}");
-//     }
-
-//     #[test]
-//     /// this is require GEMINI_API_KEY in your env.
-//     fn test_gemini() {
-//         let api = env::var("GEMINI_API_KEY");
-//         let rt = Runtime::new().unwrap();
-//         let result = rt.block_on(gemini(
-//             api.unwrap(),
-//             "gemini-2.0-flash".to_string(),
-//             "hello".to_string(),
-//             None,
-//             None,
-//         ));
-
-//         println!("\n\nresult\n{result:?}");
-//     }
-// }

@@ -5,7 +5,15 @@ use std::{
 
 use tokio::{runtime::Runtime, task, time};
 
-use crate::Error;
+pub enum Error {
+    Io(std::io::Error),
+}
+
+impl From<std::io::Error> for Error {
+    fn from(value: std::io::Error) -> Self {
+        Self::Io(value)
+    }
+}
 
 pub fn run_with_spinner<F, Fut, T>(task_fn: F) -> Result<T, Error>
 where
@@ -13,11 +21,11 @@ where
     Fut: std::future::Future<Output = T> + Send + 'static,
     T: Send + 'static,
 {
-    let rt = Runtime::new().map_err(Error::IoE)?;
+    let rt = Runtime::new()?;
     Ok(rt.block_on(spinner(task_fn)))
 }
 
-pub async fn spinner<F, Fut, T>(task_fn: F) -> T
+async fn spinner<F, Fut, T>(task_fn: F) -> T
 where
     F: FnOnce() -> Fut + Send + 'static,
     Fut: std::future::Future<Output = T> + Send + 'static,
