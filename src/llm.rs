@@ -6,8 +6,9 @@ use llm_api_rs::{
 };
 use ollama_rs::{Ollama, generation::completion::request::GenerationRequest};
 
-use crate::cli_helper;
+use crate::{cli_helper, config};
 
+#[derive(Debug)]
 pub enum Error {
     NotSuppoeredProvider,
     FailedGetAPIKey,
@@ -84,6 +85,24 @@ impl LlmReqInfo {
             }
         })
     }
+
+    pub fn new(
+        provider: Provider,
+        model: String,
+        api_key: Option<String>,
+        temp: Option<f32>,
+        max_tokens: Option<u32>,
+        base_url: Option<(String, u16)>,
+    ) -> Self {
+        Self {
+            provider,
+            model,
+            api_key,
+            temp,
+            max_tokens,
+            base_url,
+        }
+    }
 }
 
 pub async fn call_llm<T: AsRef<str>>(llm_info: LlmReqInfo, prompt: T) -> Result<String, Error> {
@@ -122,17 +141,15 @@ pub async fn call_llm<T: AsRef<str>>(llm_info: LlmReqInfo, prompt: T) -> Result<
             max_tokens: *llm_info.max_tokens(),
         };
 
-        cli_helper::run_with_spinner(move || async move {
-            match client.chat_completion(request).await {
-                Ok(response) => {
-                    if let Some(choice) = response.choices.get(0) {
-                        Ok(choice.message.content.clone())
-                    } else {
-                        Ok(String::new())
-                    }
+        match client.chat_completion(request).await {
+            Ok(response) => {
+                if let Some(choice) = response.choices.get(0) {
+                    Ok(choice.message.content.clone())
+                } else {
+                    Ok(String::new())
                 }
-                Err(e) => Err(Error::ChatCompletionError(e.to_string())),
             }
-        })?
+            Err(e) => Err(Error::ChatCompletionError(e.to_string())),
+        }
     }
 }

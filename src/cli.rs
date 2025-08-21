@@ -1,10 +1,26 @@
-use clap;
+use std::{fs, path::PathBuf};
+
+use clap::{self, ArgGroup};
+use derive_getters::Getters;
+
+#[derive(Debug)]
+pub enum Error {
+    InvalidFormatBaseUrl,
+    InvalidPortAsBaseUrl,
+    Io(std::io::Error),
+}
+
+impl From<std::io::Error> for Error {
+    fn from(value: std::io::Error) -> Self {
+        Self::Io(value)
+    }
+}
 
 #[derive(Debug, clap::Parser, Clone)]
 #[command(name = "ggw", version, about = "generate git commit msg by llm")]
 pub struct Cli {
     #[command(subcommand)]
-    subcommand: Commands,
+    pub subcommand: Commands,
 }
 
 impl RootOption for Cli {
@@ -13,19 +29,20 @@ impl RootOption for Cli {
     }
 }
 
-trait RootOption {
+pub trait RootOption {
     fn get_root_options(&self) -> RootOptions;
 }
 
-#[derive(Debug, clap::Args, Clone)]
-struct RootOptions {
+#[derive(Debug, clap::Args, Clone, Getters)]
+#[clap(group(ArgGroup::new("model_sp").required(true).args(&["model", "alias"])))]
+pub struct RootOptions {
     #[arg(
         short = 'm',
         long = "model",
         conflicts_with = "alias",
         help = "`-m gemini/gemino-2.0-flash`"
     )]
-    model: Option<String>,
+    model: String,
 
     #[arg(
         short = 'a',
@@ -33,7 +50,16 @@ struct RootOptions {
         conflicts_with = "model",
         help = "`-a [alias-name]`"
     )]
-    alias: Option<String>,
+    alias: String,
+
+    #[arg(long = "temperature")]
+    temperature: Option<f32>,
+
+    #[arg(long = "max-tokens")]
+    max_tokens: Option<u32>,
+
+    #[arg(long = "base-url")]
+    base_url: Option<String>,
 
     #[arg(short = 'p', long = "path", help = "work path. git project root path.")]
     path: Option<String>,
@@ -49,8 +75,25 @@ struct RootOptions {
     extra: Option<String>,
 }
 
+impl RootOptions {
+    pub fn parse_base_url(&self) -> Result<Option<(String, u16)>, Error> {
+        match self.clone().base_url {
+            Some(v) => match v.split_once('/') {
+                Some(vv) => {
+                    let port =
+                        vv.1.parse::<u16>()
+                            .map_err(|_| Error::InvalidPortAsBaseUrl)?;
+                    Ok(Some((vv.0.to_string(), port)))
+                }
+                None => Err(Error::InvalidFormatBaseUrl),
+            },
+            None => Ok(None),
+        }
+    }
+}
+
 #[derive(Debug, clap::Subcommand, Clone)]
-enum Commands {
+pub enum Commands {
     #[command(name = "commit", about = "gen git commit msg")]
     Commit(Commit),
 
@@ -71,8 +114,8 @@ impl RootOption for Commands {
     }
 }
 
-#[derive(Debug, clap::Args, Clone)]
-struct Commit {
+#[derive(Debug, clap::Args, Clone, Getters)]
+pub struct Commit {
     #[command(flatten)]
     root_options: RootOptions,
 
@@ -80,26 +123,44 @@ struct Commit {
     auto_commit: bool,
 }
 
-#[derive(Debug, clap::Args, Clone)]
-struct Readme {
+#[derive(Debug, clap::Args, Clone, Getters)]
+pub struct Readme {
     #[command(flatten)]
     root_options: RootOptions,
 
     #[arg(short = 's', long = "sources", help = "source files path list")]
-    source_path_list: Option<String>,
+    source_path: Option<String>,
 
     #[arg(short = 'd', long = "directory", help = "source folder")]
     source_dir: Option<String>,
 
     #[arg(long = "merge-readme", help = "allow to merge to `./README.md`")]
     allow_merge: bool,
-
-    #[arg(long = "over-write", help = "allow to overwrite `./README.md`")]
-    allow_over_write: bool,
+    // #[arg(long = "over-write", help = "allow to overwrite `./README.md`")]
+    // allow_over_write: bool,
 }
 
-#[derive(Debug, clap::Args, Clone)]
-struct DiffSum {
+impl Readme {
+    pub fn export_path_list(&self) -> Option<Vec<PathBuf>> {
+        let mut list = Vec::new();
+        if let Some(p) = &self.source_path {
+            list.push(PathBuf::from(p));
+        }
+        if let Some(l) = &self.source_dir {
+            let path = PathBuf::from(l);
+            let path_list = fs::read_dir(path).ok()?;
+            for i in path_list {
+                let i = i.unwrap().path();
+                list.push(i);
+            }
+        }
+
+        Some(list)
+    }
+}
+
+#[derive(Debug, clap::Args, Clone, Getters)]
+pub struct DiffSum {
     #[command(flatten)]
     root_options: RootOptions,
 }

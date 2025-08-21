@@ -1,5 +1,6 @@
 use crate::llm;
 
+#[derive(Debug)]
 pub enum Error {
     Io(std::io::Error),
     Llm(llm::Error),
@@ -17,11 +18,11 @@ Given a description of code changes, output only a single-line commit message in
 Do not include any extra text, code blocks, or formatting. Only output the commit message.\
 Diff Changes:";
 
-pub fn gen_commit_msg<T: AsRef<str>>(
+pub async fn gen_commit_msg<T: AsRef<str>>(
     diff: T,
     model: llm::LlmReqInfo,
-    lang: Option<T>,
-    extra: Option<T>,
+    lang: Option<&T>,
+    extra: Option<&T>,
 ) -> Result<String, Error> {
     let diff = diff.as_ref();
     let lang = lang
@@ -34,5 +35,5 @@ pub fn gen_commit_msg<T: AsRef<str>>(
 
     let prompt = format!("Please in {lang}.\n{GEN_MSG_PMT}{diff}.\n{extra}");
 
-    let res = llm::call_llm(model, prompt)?;
+    Ok(llm::call_llm(model, prompt).await?)
 }
