@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::{fs, path::PathBuf, fmt::Display};
 
 use clap::{self, ArgGroup};
 use derive_getters::Getters;
@@ -8,6 +8,16 @@ pub enum Error {
     InvalidFormatBaseUrl,
     InvalidPortAsBaseUrl,
     Io(std::io::Error),
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::InvalidFormatBaseUrl => write!(f, "invalid format base url"),
+            Error::InvalidPortAsBaseUrl => write!(f, "invalid port as base url"),
+            Error::Io(e) => write!(f, "io error: {}", e),
+        }
+    }
 }
 
 impl From<std::io::Error> for Error {
@@ -40,17 +50,9 @@ pub struct RootOptions {
         short = 'm',
         long = "model",
         conflicts_with = "alias",
-        help = "`-m gemini/gemino-2.0-flash`"
+        help = "`-m gemini/gemino-2.0-flash` or `-m config's model name`"
     )]
-    model: String,
-
-    #[arg(
-        short = 'a',
-        long = "alias",
-        conflicts_with = "model",
-        help = "`-a [alias-name]`"
-    )]
-    alias: String,
+    model: Option<String>,
 
     #[arg(long = "temperature")]
     temperature: Option<f32>,

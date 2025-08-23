@@ -11,16 +11,18 @@ mod readme_gen;
 
 use clap::Parser;
 use easy_storage::Storeable;
-use git2::{Worktree, opts::get_mwindow_mapped_limit};
-use ollama_rs::models::ModelInfo;
-use std::{env, fs::OpenOptions, io::Write, path::PathBuf};
-
+use std::{env, fmt::Display, fs::OpenOptions, io::Write, path::PathBuf};
 use crate::{
     cli::{Cli, RootOption},
-    config::{Config, Model},
+    config::Config,
     get_input::yes_no,
-    helper::{exist_readme, find_readme, get_now},
+    helper::{find_readme, get_now}, llm::LlmReqInfo,
 };
+
+const ANTHROPIC_API: &str = "GGW_ANTHROPIC_API";
+const GEMINI_API: &str = "GGW_GEMINI_API";
+const OPENAI_API: &str = "GGW_OPENAI_API";
+const DEEPSEEK: &str = "GGW_DEEPSEEK_API";
 
 #[derive(Debug)]
 enum Error {
@@ -32,13 +34,13 @@ enum Error {
     Git(git::Error),
     Cmt(commit_gen::Error),
     Rdm(readme_gen::Error),
+    EnvVar(env::VarError),
     NotFoundHome,
     NotFoundConfig,
     NotFoundWorkFolder,
-    NotFoundAlias,
     InvalidModelName,
-    DoesNotExistAlias,
     CancelCommit,
+    UnDefinedApi,
 }
 
 impl From<std::io::Error> for Error {
@@ -80,6 +82,40 @@ impl From<commit_gen::Error> for Error {
 impl From<readme_gen::Error> for Error {
     fn from(value: readme_gen::Error) -> Self {
         Self::Rdm(value)
+    }
+}
+
+impl From<llm::Error> for Error {
+    fn from(value: llm::Error) -> Self {
+        Self::Llm(value)
+    }
+}
+
+impl From<env::VarError> for Error {
+    fn from(value: env::VarError) -> Self {
+        Self::EnvVar(value)
+    }
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::Io(error) => write!(f, "io error: {error}"),
+            Error::Store(error) => write!(f, "save error: {error}"),
+            Error::Llm(error) => write!(f, "llm error: {error}"),
+            Error::Config(error) => write!(f, "config error: {error}"),
+            Error::Cli(error) => write!(f, "cli error: {error}"),
+            Error::Git(error) => write!(f, "git error: {error}"),
+            Error::Cmt(error) => write!(f, "commit gen error: {error}"),
+            Error::Rdm(error) => write!(f, "readme gen error: {error}"),
+            Error::NotFoundHome => write!(f, "not found home directory"),
+            Error::NotFoundConfig => write!(f, "not found config file"),
+            Error::NotFoundWorkFolder => write!(f, "not found work folder"),
+            Error::InvalidModelName => write!(f, "invalid model name"),
+            Error::CancelCommit => write!(f, "commit canceled"),
+            Error::UnDefinedApi => write!(f, "tis api key is UnDefined"),
+            Error::EnvVar(var_error) => write!(f, "failed get api key as env var. please set it."),
+        }
     }
 }
 
@@ -130,75 +166,77 @@ fn resolve_work_path<T: RootOption>(opt: &T) -> Result<PathBuf, Error> {
 
 /// * `gemini/gemini-2.0-flash` -> (gemini, gemini-2.0-flash)
 /// * `g2f` -> `(gemini, gemini-2.0-flash)` (if an alias is registered)
+/// * `` -> default in config
 fn resolve_model(
-    model_name: &str,
-    config: &config::Config,
-    root_options: &cli::RootOptions,
-) -> Result<config::Model, Error> {
-    match config
-        .llms()
-        .as_ref()
-        .and_then(|llms| llms.get_model(model_name))
-    {
-        Some(model) => Ok(model),
+    config: &Option<Config>,
+    root_opts: &cli::RootOptions,
+) -> Result<config::Model,Error> {
+    let res = match root_opts.model() {
+        Some(v) => match v.split_once('/') {
+            // `-m gemini/gemini-2.0-flash`
+            Some(vv) => Ok(
+                config::Model::new(vv.0, vv.1, *root_opts.temperature(), 
+                    *root_opts.max_tokens(), 
+                    root_opts.base_url().as_ref().map(|f| f.clone()))),
+            // `-m gem2`
+            None => {
+                match config {
+                    Some(v) => v.llms().clone().ok_or(Error::NotFoundConfig),
+                    None => Err(Error::NotFoundConfig),
+                }?.get_model(v).ok_or(Error::NotFoundConfig)
+                
+            },
+        },
+        // without mode arg
         None => {
-            let parts: Vec<&str> = model_name.split('/').collect();
-            if parts.len() != 2 {
-                return Err(Error::InvalidModelName);
-            }
-            Ok(config::Model::new(
-                parts[0],
-                parts[1],
-                *root_options.temperature(),
-                *root_options.max_tokens(),
-                root_options.parse_base_url()?,
-            ))
-        }
-    }
+            match config {
+                    Some(v) => v.llms().clone().ok_or(Error::NotFoundConfig),
+                    None => Err(Error::NotFoundConfig),
+                }?.get_default().ok_or(Error::NotFoundConfig)
+
+        },
+    };
+    res
+ 
 }
 
-fn resolve_model_info(cli: &Cli, config: &Config) -> Result<llm::LlmReqInfo, Error> {
-    let root_options = cli.get_root_options();
-    let model_name = root_options.model();
-    let model = resolve_model(model_name, config, &root_options)?;
-
-    let provider = model
-        .provider()
-        .as_str()
-        .try_into()
-        .map_err(|_| Error::InvalidModelName)?;
-    let base_url = model.base_url().clone();
-
-    Ok(llm::LlmReqInfo::new(
-        provider,
-        model.model().clone(),
-        None, // API key is not handled here, you might need to adjust this
-        *model.temperature(),
-        *model.max_tokens(),
-        base_url,
-    ))
+fn resolve_api_key(model: &config::Model) -> Result<Option<String>, Error> {
+    let prov = llm::Provider::try_from(model.provider().as_str())?;
+    Ok(match prov {
+        llm::Provider::Ollama => None,
+        llm::Provider::OpenAI => Some(env::var(OPENAI_API)),
+        llm::Provider::Gemini => Some(env::var(GEMINI_API)),
+        llm::Provider::Anthropic => Some(env::var(ANTHROPIC_API)),
+        llm::Provider::DeepSeek => Some(env::var(DEEPSEEK)),
+    }.transpose()?)
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let cli = cli::Cli::parse();
 
-    let config_path = resolve_config_path()?;
+    let config_path = resolve_config_path().ok();
+    let loaded_config = config_path.map(|p| config::Config::load_by_extension(p)).transpose().ok().flatten();
+
     let work_path = resolve_work_path(&cli)?;
 
-    let config = config::Config::load_by_extension(config_path)?;
+    // let config = config::Config::load_by_extension(config_path)?;
 
-    let model_info = resolve_model_info(&cli, &config)?;
+    let model = resolve_model(&loaded_config, &cli.get_root_options())?;
+    let api_key = resolve_api_key(&model)?;
+
+    let model_info = llm::LlmReqInfo::new_with_api(model, api_key)?;
 
     let diff = git::get_diff(&work_path)?;
 
     let git_user = git::get_user_email()?;
 
+
     let root_options = cli.get_root_options();
     let lang = root_options.lang().as_ref();
     let extra = root_options.extra().as_ref();
 
-    let res = match &cli.subcommand {
+    match &cli.subcommand {
         cli::Commands::Commit(commit) => {
             let msg = commit_gen::gen_commit_msg(diff, model_info, lang, extra).await?;
             println!("Generated msg: {msg}");
@@ -221,21 +259,27 @@ async fn main() -> Result<(), Error> {
                     OpenOptions::new().append(true).open(v)?
                 } else {
                     let path = work_path.join(format!("{}.md", get_now()));
-                    OpenOptions::new().write(true).create(true).open(path)?
+                    OpenOptions::new()
+                        .write(true)
+                        .create(true)
+                        .truncate(true)
+                        .open(path)?
                 }
             } else {
                 let path = work_path.join(format!("{}.md", get_now()));
-                OpenOptions::new().write(true).create(true).open(path)?
+                OpenOptions::new()
+                    .write(true)
+                    .create(true)
+                    .truncate(true)
+                    .open(path)?
             };
             Ok(f.write_all(readme_content.as_bytes())?)
         }
-        cli::Commands::DiffSum(_diff_sum) => todo!(),
-    };
-
-    // Now you can use model_info
-    // For example:
-    // let response = llm::call_llm(model_info, "Hello, world!").await?;
-    // println!("{}", response);
-
-    Ok(())
+        cli::Commands::DiffSum(_diff_sum) => {
+            let res =
+                diff_sum_gen::sum_diff(diff, model_info, lang.cloned(), extra.cloned()).await?;
+            println!("diff summarize:\n{res}");
+            Ok(())
+        }
+    }
 }

@@ -1,9 +1,18 @@
+use std::fmt::Display;
+
 use crate::llm;
 
 #[derive(Debug)]
 pub enum Error {
-    Io(std::io::Error),
     Llm(llm::Error),
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::Llm(e) => write!(f, "llm error: {}", e),
+        }
+    }
 }
 
 impl From<llm::Error> for Error {

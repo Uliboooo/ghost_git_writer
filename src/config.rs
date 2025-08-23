@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use derive_getters::Getters;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -5,6 +7,18 @@ use std::collections::HashMap;
 #[derive(Debug)]
 pub enum Error {
     NotFoundAlias,
+    InvalidPortFormat,
+    InvalidBaseUrlFormat,
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::NotFoundAlias => write!(f, "not found alias"),
+            Error::InvalidPortFormat => todo!(),
+            Error::InvalidBaseUrlFormat => todo!(),
+        }
+    }
 }
 
 #[derive(Debug, Getters, Serialize, Deserialize)]
@@ -15,7 +29,7 @@ pub struct Config {
 impl Config {
     pub fn exist_alias<T: AsRef<str>>(&self, alias: T) -> bool {
         match &self.llms {
-            Some(v) => match &v.model_alias {
+            Some(v) => match &v.models {
                 Some(vv) => vv.contains_key(&alias.as_ref().to_string()),
                 None => false,
             },
@@ -34,32 +48,33 @@ impl Config {
 
 impl easy_storage::Storeable for Config {}
 
-#[derive(Debug, Getters, Serialize, Deserialize)]
+#[derive(Debug, Getters, Serialize, Deserialize, Clone)]
 pub struct Llm {
-    default_alias: Option<String>,
-    model_alias: Option<HashMap<String, Model>>,
+    default_model: Option<Model>,
+    models: Option<HashMap<String, Model>>,
+    ollama: Option<OllamaConfig>,
 }
 
 impl Llm {
     /// check to exist alias
     pub fn exist_alias<T: AsRef<str>>(&self, alias: T) -> bool {
-        match self.model_alias() {
+        match self.models() {
             Some(v) => v.contains_key(&alias.as_ref().to_string()),
             None => false,
         }
     }
 
     pub fn exist_default_alias(&self) -> bool {
-        // self.exist_alias(*self.default_alias())
-        match self.default_alias() {
-            Some(v) => self.exist_alias(v),
-            None => false,
-        }
+        self.default_model.is_some()
     }
 
-    pub fn get_model<T: AsRef<str>>(&self, alias: T) -> Option<Model> {
-        let res = match &self.model_alias {
-            Some(v) => Some(v.get(&alias.as_ref().to_string())),
+    pub fn get_default(&self) -> Option<Model> {
+        self.default_model.clone()
+    }
+
+    pub fn get_model<T: AsRef<str>>(&self, name: T) -> Option<Model> {
+        let res = match &self.models {
+            Some(v) => Some(v.get(&name.as_ref().to_string())),
             None => None,
         }
         .flatten();
@@ -76,7 +91,7 @@ pub struct Model {
     model: String,
     temperature: Option<f32>,
     max_tokens: Option<u32>,
-    base_url: Option<(String, u16)>,
+    base_url: Option<String>,
 }
 
 impl Model {
@@ -85,7 +100,7 @@ impl Model {
         model: T,
         temperature: Option<f32>,
         max_tokens: Option<u32>,
-        base_url: Option<(String, u16)>,
+        base_url: Option<String>,
     ) -> Self {
         Self {
             provider: provider.as_ref().to_string(),
@@ -94,5 +109,30 @@ impl Model {
             max_tokens,
             base_url,
         }
+    }
+
+    pub fn resolve_base_url(&self) -> Result<Option<(String, u16)>, Error> {
+        match &self.base_url {
+            Some(url) => match url.split_once(':') {
+                Some(vv) => {
+                    let port = vv.1.parse::<u16>().map_err(|_| Error::InvalidPortFormat)?;
+                    Ok(Some((vv.0.to_string(), port)))
+
+                },
+                None => Err(Error::InvalidBaseUrlFormat),
+            },
+            None => Ok(None),
+        }
+    }
+}
+
+#[derive(Debug, Getters, Serialize, Deserialize, Clone)]
+pub struct OllamaConfig {
+    base_url: Option<String>
+}
+
+impl Default for OllamaConfig {
+    fn default() -> Self {
+        Self { base_url: Some(String::from("http://localhost:11434")) }
     }
 }

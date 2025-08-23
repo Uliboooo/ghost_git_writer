@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{fmt::Display, path::Path};
 
 use crate::{helper, llm};
 
@@ -21,6 +21,16 @@ pub enum Error {
     Io(std::io::Error),
     Helper(helper::Error),
     Llm(llm::Error),
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::Io(e) => write!(f, "io error: {}", e),
+            Error::Helper(e) => write!(f, "helper error: {}", e),
+            Error::Llm(e) => write!(f, "llm error: {}", e),
+        }
+    }
 }
 
 impl From<helper::Error> for Error {

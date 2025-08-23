@@ -1,10 +1,13 @@
+use std::fmt::Display;
+
 use derive_getters::Getters;
 use llm_api_rs::{
-    self, LlmProvider,
+    self,
     core::{ChatCompletionRequest, ChatMessage},
     providers::{Anthropic, DeepSeek, Gemini, OpenAI},
+    LlmProvider,
 };
-use ollama_rs::{Ollama, generation::completion::request::GenerationRequest};
+use ollama_rs::{generation::completion::request::GenerationRequest, Ollama};
 
 use crate::{cli_helper, config};
 
@@ -16,6 +19,21 @@ pub enum Error {
     ChatCompletionError(String),
     CliHelperError(String),
     OllamaE(ollama_rs::error::OllamaError),
+    Conf(config::Error),
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::NotSuppoeredProvider => write!(f, "not supported provider"),
+            Error::FailedGetAPIKey => write!(f, "failed to get api key"),
+            Error::FailedGetBaseURL => write!(f, "failed to get base url"),
+            Error::ChatCompletionError(e) => write!(f, "chat completion error: {}", e),
+            Error::CliHelperError(e) => write!(f, "cli helper error: {}", e),
+            Error::OllamaE(e) => write!(f, "ollama error: {}", e),
+            Error::Conf(error) => todo!(),
+        }
+    }
 }
 
 impl From<cli_helper::Error> for Error {
@@ -31,11 +49,17 @@ impl From<ollama_rs::error::OllamaError> for Error {
     }
 }
 
+impl From<config::Error> for Error {
+    fn from(value: config::Error) -> Self {
+        Self::Conf(value)
+    }
+}
+
 #[derive(Debug, PartialEq, PartialOrd, Clone)]
 pub enum Provider {
     Ollama,
     OpenAI,
-    Google,
+    Gemini,
     Anthropic,
     DeepSeek,
 }
@@ -47,7 +71,7 @@ impl TryFrom<&str> for Provider {
         match value.to_lowercase().as_str() {
             "ollama" => Ok(Self::Ollama),
             "openai" => Ok(Self::OpenAI),
-            "google" => Ok(Self::Google),
+            "google" => Ok(Self::Gemini),
             "authropic" => Ok(Self::Anthropic),
             "deepseek" => Ok(Self::DeepSeek),
             _ => Err(Error::NotSuppoeredProvider),
@@ -59,6 +83,10 @@ impl Provider {
     fn is<T: AsRef<str>>(&self, prov: T) -> Result<bool, Error> {
         let p = Provider::try_from(prov.as_ref())?;
         Ok(self == &p)
+    }
+
+    pub fn is_ollama(&self) -> bool {
+        self == &Provider::Ollama
     }
 }
 
@@ -103,6 +131,12 @@ impl LlmReqInfo {
             base_url,
         }
     }
+
+    pub fn new_with_api(model: config::Model, api_key: Option<String>) -> Result<Self, Error> {
+        let prov = Provider::try_from(model.provider().as_str())?;
+        let base = model.resolve_base_url()?;
+        Ok(Self::new(prov, model.model().clone(), api_key, *model.temperature(), *model.max_tokens(), base))
+    }
 }
 
 pub async fn call_llm<T: AsRef<str>>(llm_info: LlmReqInfo, prompt: T) -> Result<String, Error> {
@@ -125,7 +159,7 @@ pub async fn call_llm<T: AsRef<str>>(llm_info: LlmReqInfo, prompt: T) -> Result<
     } else {
         let client: Box<dyn LlmProvider + Send> = match llm_info.provider {
             Provider::OpenAI => Box::new(OpenAI::new(api)),
-            Provider::Google => Box::new(Gemini::new(api)),
+            Provider::Gemini => Box::new(Gemini::new(api)),
             Provider::Anthropic => Box::new(Anthropic::new(api)),
             Provider::DeepSeek => Box::new(DeepSeek::new(api)),
             _ => return Err(Error::NotSuppoeredProvider),

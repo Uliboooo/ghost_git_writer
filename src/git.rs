@@ -1,9 +1,18 @@
+use std::{fmt::Display, path::Path};
+
 use git2::{DiffOptions, IndexAddOption, Repository, Signature};
-use std::path::Path;
 
 #[derive(Debug)]
 pub enum Error {
     Git(git2::Error),
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::Git(e) => write!(f, "git error: {}", e),
+        }
+    }
 }
 
 impl From<git2::Error> for Error {
