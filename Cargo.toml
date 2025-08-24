@@ -1,7 +1,7 @@
 [package]
 name = "ghost_git_writer"
 description = "ggw provide that git commit msg and diff summary etc by LLM"
-version = "0.9.1"
+version = "0.10.0"
 repository = "https://github.com/Uliboooo/ghost_git_writer"
 edition = "2024"
 license = "MIT OR Apache-2.0"

@@ -171,7 +171,7 @@ fn resolve_model(
     config: &Option<Config>,
     root_opts: &cli::RootOptions,
 ) -> Result<config::Model,Error> {
-    let res = match root_opts.model() {
+    match root_opts.model() {
         Some(v) => match v.split_once('/') {
             // `-m gemini/gemini-2.0-flash`
             Some(vv) => Ok(
@@ -195,8 +195,7 @@ fn resolve_model(
                 }?.get_default().ok_or(Error::NotFoundConfig)
 
         },
-    };
-    res
+    }
  
 }
 
