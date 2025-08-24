@@ -13,10 +13,10 @@ use clap::Parser;
 use easy_storage::Storeable;
 use std::{env, fmt::Display, fs::OpenOptions, io::Write, path::PathBuf};
 use crate::{
-    cli::{Cli, RootOption},
+    cli::RootOption,
     config::Config,
     get_input::yes_no,
-    helper::{find_readme, get_now}, llm::LlmReqInfo,
+    helper::{find_readme, get_now},
 };
 
 const ANTHROPIC_API: &str = "GGW_ANTHROPIC_API";
@@ -216,7 +216,7 @@ async fn main() -> Result<(), Error> {
     let cli = cli::Cli::parse();
 
     let config_path = resolve_config_path().ok();
-    let loaded_config = config_path.map(|p| config::Config::load_by_extension(p)).transpose().ok().flatten();
+    let loaded_config = config_path.map(config::Config::load_by_extension).transpose().ok().flatten();
 
     let work_path = resolve_work_path(&cli)?;
 
