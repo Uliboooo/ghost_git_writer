@@ -5,16 +5,16 @@ use derive_getters::Getters;
 
 #[derive(Debug)]
 pub enum Error {
-    InvalidFormatBaseUrl,
-    InvalidPortAsBaseUrl,
+    // InvalidFormatBaseUrl,
+    // InvalidPortAsBaseUrl,
     Io(std::io::Error),
 }
 
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::InvalidFormatBaseUrl => write!(f, "invalid format base url"),
-            Error::InvalidPortAsBaseUrl => write!(f, "invalid port as base url"),
+            // Error::InvalidFormatBaseUrl => write!(f, "invalid format base url"),
+            // Error::InvalidPortAsBaseUrl => write!(f, "invalid port as base url"),
             Error::Io(e) => write!(f, "io error: {}", e),
         }
     }
@@ -77,22 +77,22 @@ pub struct RootOptions {
     extra: Option<String>,
 }
 
-impl RootOptions {
-    pub fn parse_base_url(&self) -> Result<Option<(String, u16)>, Error> {
-        match self.clone().base_url {
-            Some(v) => match v.split_once('/') {
-                Some(vv) => {
-                    let port =
-                        vv.1.parse::<u16>()
-                            .map_err(|_| Error::InvalidPortAsBaseUrl)?;
-                    Ok(Some((vv.0.to_string(), port)))
-                }
-                None => Err(Error::InvalidFormatBaseUrl),
-            },
-            None => Ok(None),
-        }
-    }
-}
+// impl RootOptions {
+//     pub fn parse_base_url(&self) -> Result<Option<(String, u16)>, Error> {
+//         match self.clone().base_url {
+//             Some(v) => match v.split_once('/') {
+//                 Some(vv) => {
+//                     let port =
+//                         vv.1.parse::<u16>()
+//                             .map_err(|_| Error::InvalidPortAsBaseUrl)?;
+//                     Ok(Some((vv.0.to_string(), port)))
+//                 }
+//                 None => Err(Error::InvalidFormatBaseUrl),
+//             },
+//             None => Ok(None),
+//         }
+//     }
+// }
 
 #[derive(Debug, clap::Subcommand, Clone)]
 pub enum Commands {

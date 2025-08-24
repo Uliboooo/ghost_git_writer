@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 pub enum Error {
-    NotFoundAlias,
+    //NotFoundAlias,
     InvalidPortFormat,
     InvalidBaseUrlFormat,
 }
@@ -14,9 +14,9 @@ pub enum Error {
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::NotFoundAlias => write!(f, "not found alias"),
-            Error::InvalidPortFormat => todo!(),
-            Error::InvalidBaseUrlFormat => todo!(),
+            //Error::NotFoundAlias => write!(f, "not found alias"),
+            Error::InvalidPortFormat => write!(f, "invalid port format"),
+            Error::InvalidBaseUrlFormat => write!(f, "invalid base url format"),
         }
     }
 }
@@ -26,21 +26,21 @@ pub struct Config {
     llms: Option<Llm>,
 }
 
-impl Config {
-    pub fn exist_alias<T: AsRef<str>>(&self, alias: T) -> bool {
-        match &self.llms {
-            Some(v) => match &v.models {
-                Some(vv) => vv.contains_key(&alias.as_ref().to_string()),
-                None => false,
-            },
-            None => false,
-        }
-    }
-
-    pub fn get_alias<T: AsRef<str>>(&self, alias: T) -> Option<Model> {
-        self.llms.as_ref().and_then(|v| v.get_model(alias))
-    }
-}
+// impl Config {
+//     pub fn exist_alias<T: AsRef<str>>(&self, alias: T) -> bool {
+//         match &self.llms {
+//             Some(v) => match &v.models {
+//                 Some(vv) => vv.contains_key(&alias.as_ref().to_string()),
+//                 None => false,
+//             },
+//             None => false,
+//         }
+//     }
+//
+//     // pub fn get_alias<T: AsRef<str>>(&self, alias: T) -> Option<Model> {
+//     //     self.llms.as_ref().and_then(|v| v.get_model(alias))
+//     // }
+// }
 
 impl easy_storage::Storeable for Config {}
 
@@ -52,18 +52,17 @@ pub struct Llm {
 }
 
 impl Llm {
-    /// check to exist alias
-    pub fn exist_alias<T: AsRef<str>>(&self, alias: T) -> bool {
-        match self.models() {
-            Some(v) => v.contains_key(&alias.as_ref().to_string()),
-            None => false,
-        }
-    }
+    // pub fn exist_alias<T: AsRef<str>>(&self, alias: T) -> bool {
+    //     match self.models() {
+    //         Some(v) => v.contains_key(&alias.as_ref().to_string()),
+    //         None => false,
+    //     }
+    // }
 
-    pub fn exist_default_alias(&self) -> bool {
-        self.default_model.is_some()
-    }
-
+    // pub fn exist_default_alias(&self) -> bool {
+    //     self.default_model.is_some()
+    // }
+    //
     pub fn get_default(&self) -> Option<Model> {
         self.default_model.clone()
     }
@@ -74,10 +73,7 @@ impl Llm {
             None => None,
         }
         .flatten();
-        match res {
-            Some(v) => Some(v.clone()),
-            None => None,
-        }
+        res.cloned()
     }
 }
 

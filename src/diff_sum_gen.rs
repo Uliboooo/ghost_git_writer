@@ -16,5 +16,5 @@ pub async fn sum_diff<T: AsRef<str>>(
     let diff = diff.as_ref();
     let prompt = format!("Please in {lang}.\n{DEFAULT_PROMPT} {diff}.\n{extra}");
 
-    Ok(llm::call_llm(model, prompt).await?)
+    llm::call_llm(model, prompt).await
 }

@@ -15,8 +15,8 @@ pub enum Error {
     NotSuppoeredProvider,
     FailedGetAPIKey,
     FailedGetBaseURL,
-    ChatCompletionError(String),
-    CliHelperError(String),
+    ChatCompletion(String),
+    CliHelper(String),
     OllamaE(ollama_rs::error::OllamaError),
     Conf(config::Error),
 }
@@ -27,10 +27,10 @@ impl Display for Error {
             Error::NotSuppoeredProvider => write!(f, "not supported provider"),
             Error::FailedGetAPIKey => write!(f, "failed to get api key"),
             Error::FailedGetBaseURL => write!(f, "failed to get base url"),
-            Error::ChatCompletionError(e) => write!(f, "chat completion error: {}", e),
-            Error::CliHelperError(e) => write!(f, "cli helper error: {}", e),
+            Error::ChatCompletion(e) => write!(f, "chat completion error: {}", e),
+            Error::CliHelper(e) => write!(f, "cli helper error: {}", e),
             Error::OllamaE(e) => write!(f, "ollama error: {}", e),
-            Error::Conf(error) => todo!(),
+            Error::Conf(error) => write!(f, "config error {error}"),
         }
     }
 }
@@ -38,7 +38,7 @@ impl Display for Error {
 impl From<cli_helper::Error> for Error {
     fn from(e: cli_helper::Error) -> Self {
         match e {
-            cli_helper::Error::Io(io_err) => Error::CliHelperError(io_err.to_string()),
+            cli_helper::Error::Io(io_err) => Error::CliHelper(io_err.to_string()),
         }
     }
 }
@@ -84,9 +84,9 @@ impl Provider {
         Ok(self == &p)
     }
 
-    pub fn is_ollama(&self) -> bool {
-        self == &Provider::Ollama
-    }
+    // pub fn is_ollama(&self) -> bool {
+    //     self == &Provider::Ollama
+    // }
 }
 
 #[derive(Debug, Getters, Clone)]
@@ -183,13 +183,13 @@ pub async fn call_llm<T: AsRef<str>>(llm_info: LlmReqInfo, prompt: T) -> Result<
 
         match client.chat_completion(request).await {
             Ok(response) => {
-                if let Some(choice) = response.choices.get(0) {
+                if let Some(choice) = response.choices.first() {
                     Ok(choice.message.content.clone())
                 } else {
                     Ok(String::new())
                 }
             }
-            Err(e) => Err(Error::ChatCompletionError(e.to_string())),
+            Err(e) => Err(Error::ChatCompletion(e.to_string())),
         }
     }
 }

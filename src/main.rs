@@ -34,7 +34,7 @@ enum Error {
     Git(git::Error),
     Cmt(commit_gen::Error),
     Rdm(readme_gen::Error),
-    EnvVar(env::VarError),
+    EnvVar,
     NotFoundHome,
     NotFoundConfig,
     NotFoundWorkFolder,
@@ -90,8 +90,8 @@ impl From<llm::Error> for Error {
 }
 
 impl From<env::VarError> for Error {
-    fn from(value: env::VarError) -> Self {
-        Self::EnvVar(value)
+    fn from(_value: env::VarError) -> Self {
+        Self::EnvVar
     }
 }
 
@@ -110,7 +110,7 @@ impl Display for Error {
             Error::NotFoundConfig => write!(f, "not found config file"),
             Error::NotFoundWorkFolder => write!(f, "not found work folder"),
             Error::CancelCommit => write!(f, "commit canceled"),
-            Error::EnvVar(_) => write!(f, "failed get api key as env var. please set it."),
+            Error::EnvVar => write!(f, "failed get api key as env var. please set it."),
         }
     }
 }

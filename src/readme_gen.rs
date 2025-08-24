@@ -18,7 +18,7 @@ Here is the project code or file list:";
 
 #[derive(Debug)]
 pub enum Error {
-    Io(std::io::Error),
+    // Io(std::io::Error),
     Helper(helper::Error),
     Llm(llm::Error),
 }
@@ -26,7 +26,7 @@ pub enum Error {
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::Io(e) => write!(f, "io error: {}", e),
+            //Error::Io(e) => write!(f, "io error: {}", e),
             Error::Helper(e) => write!(f, "helper error: {}", e),
             Error::Llm(e) => write!(f, "llm error: {}", e),
         }
