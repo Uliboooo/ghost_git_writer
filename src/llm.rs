@@ -2,12 +2,11 @@ use std::fmt::Display;
 
 use derive_getters::Getters;
 use llm_api_rs::{
-    self,
+    self, LlmProvider,
     core::{ChatCompletionRequest, ChatMessage},
     providers::{Anthropic, DeepSeek, Gemini, OpenAI},
-    LlmProvider,
 };
-use ollama_rs::{generation::completion::request::GenerationRequest, Ollama};
+use ollama_rs::{Ollama, generation::completion::request::GenerationRequest};
 
 use crate::{cli_helper, config};
 
@@ -135,7 +134,14 @@ impl LlmReqInfo {
     pub fn new_with_api(model: config::Model, api_key: Option<String>) -> Result<Self, Error> {
         let prov = Provider::try_from(model.provider().as_str())?;
         let base = model.resolve_base_url()?;
-        Ok(Self::new(prov, model.model().clone(), api_key, *model.temperature(), *model.max_tokens(), base))
+        Ok(Self::new(
+            prov,
+            model.model().clone(),
+            api_key,
+            *model.temperature(),
+            *model.max_tokens(),
+            base,
+        ))
     }
 }
 

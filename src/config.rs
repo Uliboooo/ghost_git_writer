@@ -37,12 +37,8 @@ impl Config {
         }
     }
 
-    fn get_alias<T: AsRef<str>>(&self, alias: T) -> Option<Model> {
-        match &self.llms {
-            Some(v) => Some(v.get_model(alias)),
-            None => None,
-        }
-        .flatten()
+    pub fn get_alias<T: AsRef<str>>(&self, alias: T) -> Option<Model> {
+        self.llms.as_ref().and_then(|v| v.get_model(alias))
     }
 }
 
@@ -117,8 +113,7 @@ impl Model {
                 Some(vv) => {
                     let port = vv.1.parse::<u16>().map_err(|_| Error::InvalidPortFormat)?;
                     Ok(Some((vv.0.to_string(), port)))
-
-                },
+                }
                 None => Err(Error::InvalidBaseUrlFormat),
             },
             None => Ok(None),
@@ -128,11 +123,13 @@ impl Model {
 
 #[derive(Debug, Getters, Serialize, Deserialize, Clone)]
 pub struct OllamaConfig {
-    base_url: Option<String>
+    base_url: Option<String>,
 }
 
 impl Default for OllamaConfig {
     fn default() -> Self {
-        Self { base_url: Some(String::from("http://localhost:11434")) }
+        Self {
+            base_url: Some(String::from("http://localhost:11434")),
+        }
     }
 }

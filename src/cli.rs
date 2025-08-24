@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf, fmt::Display};
+use std::{fmt::Display, fs, path::PathBuf};
 
 use clap::{self, ArgGroup};
 use derive_getters::Getters;

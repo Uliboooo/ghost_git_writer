@@ -9,15 +9,15 @@ mod helper;
 mod llm;
 mod readme_gen;
 
-use clap::Parser;
-use easy_storage::Storeable;
-use std::{env, fmt::Display, fs::OpenOptions, io::Write, path::PathBuf};
 use crate::{
     cli::RootOption,
     config::Config,
     get_input::yes_no,
     helper::{find_readme, get_now},
 };
+use clap::Parser;
+use easy_storage::Storeable;
+use std::{env, fmt::Display, fs::OpenOptions, io::Write, path::PathBuf};
 
 const ANTHROPIC_API: &str = "GGW_ANTHROPIC_API";
 const GEMINI_API: &str = "GGW_GEMINI_API";
@@ -38,9 +38,7 @@ enum Error {
     NotFoundHome,
     NotFoundConfig,
     NotFoundWorkFolder,
-    InvalidModelName,
     CancelCommit,
-    UnDefinedApi,
 }
 
 impl From<std::io::Error> for Error {
@@ -111,10 +109,8 @@ impl Display for Error {
             Error::NotFoundHome => write!(f, "not found home directory"),
             Error::NotFoundConfig => write!(f, "not found config file"),
             Error::NotFoundWorkFolder => write!(f, "not found work folder"),
-            Error::InvalidModelName => write!(f, "invalid model name"),
             Error::CancelCommit => write!(f, "commit canceled"),
-            Error::UnDefinedApi => write!(f, "tis api key is UnDefined"),
-            Error::EnvVar(var_error) => write!(f, "failed get api key as env var. please set it."),
+            Error::EnvVar(_) => write!(f, "failed get api key as env var. please set it."),
         }
     }
 }
@@ -170,33 +166,33 @@ fn resolve_work_path<T: RootOption>(opt: &T) -> Result<PathBuf, Error> {
 fn resolve_model(
     config: &Option<Config>,
     root_opts: &cli::RootOptions,
-) -> Result<config::Model,Error> {
+) -> Result<config::Model, Error> {
     match root_opts.model() {
         Some(v) => match v.split_once('/') {
             // `-m gemini/gemini-2.0-flash`
-            Some(vv) => Ok(
-                config::Model::new(vv.0, vv.1, *root_opts.temperature(), 
-                    *root_opts.max_tokens(), 
-                    root_opts.base_url().as_ref().map(|f| f.clone()))),
+            Some(vv) => Ok(config::Model::new(
+                vv.0,
+                vv.1,
+                *root_opts.temperature(),
+                *root_opts.max_tokens(),
+                root_opts.base_url().clone(),
+            )),
             // `-m gem2`
-            None => {
-                match config {
-                    Some(v) => v.llms().clone().ok_or(Error::NotFoundConfig),
-                    None => Err(Error::NotFoundConfig),
-                }?.get_model(v).ok_or(Error::NotFoundConfig)
-                
-            },
+            None => match config {
+                Some(v) => v.llms().clone().ok_or(Error::NotFoundConfig),
+                None => Err(Error::NotFoundConfig),
+            }?
+            .get_model(v)
+            .ok_or(Error::NotFoundConfig),
         },
         // without mode arg
-        None => {
-            match config {
-                    Some(v) => v.llms().clone().ok_or(Error::NotFoundConfig),
-                    None => Err(Error::NotFoundConfig),
-                }?.get_default().ok_or(Error::NotFoundConfig)
-
-        },
+        None => match config {
+            Some(v) => v.llms().clone().ok_or(Error::NotFoundConfig),
+            None => Err(Error::NotFoundConfig),
+        }?
+        .get_default()
+        .ok_or(Error::NotFoundConfig),
     }
- 
 }
 
 fn resolve_api_key(model: &config::Model) -> Result<Option<String>, Error> {
@@ -207,7 +203,8 @@ fn resolve_api_key(model: &config::Model) -> Result<Option<String>, Error> {
         llm::Provider::Gemini => Some(env::var(GEMINI_API)),
         llm::Provider::Anthropic => Some(env::var(ANTHROPIC_API)),
         llm::Provider::DeepSeek => Some(env::var(DEEPSEEK)),
-    }.transpose()?)
+    }
+    .transpose()?)
 }
 
 #[tokio::main]
@@ -215,11 +212,13 @@ async fn main() -> Result<(), Error> {
     let cli = cli::Cli::parse();
 
     let config_path = resolve_config_path().ok();
-    let loaded_config = config_path.map(config::Config::load_by_extension).transpose().ok().flatten();
+    let loaded_config = config_path
+        .map(config::Config::load_by_extension)
+        .transpose()
+        .ok()
+        .flatten();
 
     let work_path = resolve_work_path(&cli)?;
-
-    // let config = config::Config::load_by_extension(config_path)?;
 
     let model = resolve_model(&loaded_config, &cli.get_root_options())?;
     let api_key = resolve_api_key(&model)?;
@@ -229,7 +228,6 @@ async fn main() -> Result<(), Error> {
     let diff = git::get_diff(&work_path)?;
 
     let git_user = git::get_user_email()?;
-
 
     let root_options = cli.get_root_options();
     let lang = root_options.lang().as_ref();
