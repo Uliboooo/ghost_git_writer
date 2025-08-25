@@ -140,12 +140,13 @@ mod tests {
 
     #[test]
     fn save_config() {
+        let def = Model::new("gemini", "gemini-2.0-flash", None, None, None);
         let mut models = HashMap::new();
         models.insert("ge".to_string(), Model::new("gemini", "gemini-2.0-flash", None, None, None));
 
         let config = config::Config {
             llms: Some(config::Llm{
-                default_model: None,
+                default_model: Some(def),
                 models: Some(models),
                 ollama: None,
             })

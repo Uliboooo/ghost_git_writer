@@ -74,6 +74,9 @@ pub struct RootOptions {
         help = "extra prompt. append to default prompt"
     )]
     extra: Option<String>,
+
+    #[arg(long = "config", help = "config file path")]
+    config_path: Option<String>,
 }
 
 // impl RootOptions {

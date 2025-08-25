@@ -70,7 +70,7 @@ impl TryFrom<&str> for Provider {
         match value.to_lowercase().as_str() {
             "ollama" => Ok(Self::Ollama),
             "openai" => Ok(Self::OpenAI),
-            "google" => Ok(Self::Gemini),
+            "gemini" => Ok(Self::Gemini),
             "authropic" => Ok(Self::Anthropic),
             "deepseek" => Ok(Self::DeepSeek),
             _ => Err(Error::NotSuppoeredProvider),

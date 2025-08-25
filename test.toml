@@ -1,3 +1,7 @@
+[llms.default_model]
+provider = "gemini"
+model = "gemini-2.0-flash"
+
 [llms.models.ge]
 provider = "gemini"
 model = "gemini-2.0-flash"

@@ -17,7 +17,7 @@ use crate::{
 };
 use clap::Parser;
 use easy_storage::Storeable;
-use std::{env, fmt::Display, fs::OpenOptions, io::Write, path::PathBuf};
+use std::{env, fmt::Display, fs::OpenOptions, io::Write, path::{Path, PathBuf}};
 
 const ANTHROPIC_API: &str = "GGW_ANTHROPIC_API";
 const GEMINI_API: &str = "GGW_GEMINI_API";
@@ -37,6 +37,9 @@ enum Error {
     EnvVar,
     NotFoundHome,
     NotFoundConfig,
+    NotFoundLlmField,
+    NotFoundSelectedModel,
+    NotFoundDefaultModel,
     NotFoundWorkFolder,
     CancelCommit,
 }
@@ -97,7 +100,7 @@ impl From<env::VarError> for Error {
 
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
+        match self{
             Error::Io(error) => write!(f, "io error: {error}"),
             Error::Store(error) => write!(f, "save error: {error}"),
             Error::Llm(error) => write!(f, "llm error: {error}"),
@@ -111,25 +114,33 @@ impl Display for Error {
             Error::NotFoundWorkFolder => write!(f, "not found work folder"),
             Error::CancelCommit => write!(f, "commit canceled"),
             Error::EnvVar => write!(f, "failed get api key as env var. please set it."),
+            Error::NotFoundLlmField => write!(f, "not found llm field in config file"),
+            Error::NotFoundSelectedModel => write!(f, "not found selected model in config"),
+            Error::NotFoundDefaultModel => write!(f, "not found default model in config"),
         }
     }
 }
 
-/// Resolves the configuration file path for the GGW application.
+/// Resolves the configuration file path.
 ///
-/// This function searches for configuration files in the user's home directory
-/// in the following order of preference:
+/// If a path is provided, returns it. Otherwise, searches for config files in standard locations:
+/// 1. `~/.config/ggw/config.toml`
+/// 2. `~/.ggw.toml`
 ///
-/// 1. `~/.config/ggw/config.toml` - Primary
-/// 2. `~/.ggw.toml` - Secondary
+/// # Arguments
+/// * `path` - Optional config file path
 ///
-/// # Returns
-///
-/// * `Ok(PathBuf)` - The path to the first existing configuration file found
-/// * `Err(Error::NotFoundHome)` - If the home directory cannot be determined
-/// * `Err(Error::NotFoundConfig)` - If no configuration file is found in any of the expected locations
-fn resolve_config_path() -> Result<PathBuf, Error> {
+/// # Errors
+/// Returns `Error::NotFoundHome` if home directory cannot be determined.
+/// Returns `Error::NotFoundConfig` if no config file is found in standard locations.
+fn resolve_config_path<T: AsRef<Path>>(path: &Option<T>) -> Result<PathBuf, Error> {
     let home_path = home::home_dir().ok_or(Error::NotFoundHome)?;
+    let p = path.as_ref().unwrap().as_ref().to_string_lossy().to_string();
+    println!("{p:?}");
+
+    if let Some(p) = path {
+        return Ok(p.as_ref().to_path_buf())
+    }
 
     let primary = home_path
         .join(".config")
@@ -179,11 +190,11 @@ fn resolve_model(
             )),
             // `-m gem2`
             None => match config {
-                Some(v) => v.llms().clone().ok_or(Error::NotFoundConfig),
+                Some(loaded_config) => loaded_config.llms().clone().ok_or(Error::NotFoundLlmField),
                 None => Err(Error::NotFoundConfig),
             }?
             .get_model(v)
-            .ok_or(Error::NotFoundConfig),
+            .ok_or(Error::NotFoundSelectedModel),
         },
         // without mode arg
         None => match config {
@@ -191,7 +202,7 @@ fn resolve_model(
             None => Err(Error::NotFoundConfig),
         }?
         .get_default()
-        .ok_or(Error::NotFoundConfig),
+        .ok_or(Error::NotFoundDefaultModel),
     }
 }
 
@@ -211,7 +222,7 @@ fn resolve_api_key(model: &config::Model) -> Result<Option<String>, Error> {
 async fn main() -> Result<(), Error> {
     let cli = cli::Cli::parse();
 
-    let config_path = resolve_config_path().ok();
+    let config_path = resolve_config_path(cli.get_root_options().config_path()).ok();
     let loaded_config = config_path
         .map(config::Config::load_by_extension)
         .transpose()
