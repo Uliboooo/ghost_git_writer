@@ -1,6 +1,6 @@
 use std::{fmt::Display, fs, path::PathBuf};
 
-use clap::{self, ArgGroup};
+use clap::{self};
 use derive_getters::Getters;
 
 #[derive(Debug)]
@@ -44,12 +44,11 @@ pub trait RootOption {
 }
 
 #[derive(Debug, clap::Args, Clone, Getters)]
-#[clap(group(ArgGroup::new("model_sp").required(true).args(&["model", "alias"])))]
 pub struct RootOptions {
     #[arg(
         short = 'm',
         long = "model",
-        conflicts_with = "alias",
+        // conflicts_with = "alias",
         help = "`-m gemini/gemino-2.0-flash` or `-m config's model name`"
     )]
     model: Option<String>,

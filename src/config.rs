@@ -129,3 +129,29 @@ impl Default for OllamaConfig {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use easy_storage::Storeable;
+
+    use crate::config::{self, Model};
+
+    #[test]
+    fn save_config() {
+        let mut models = HashMap::new();
+        models.insert("ge".to_string(), Model::new("gemini", "gemini-2.0-flash", None, None, None));
+
+        let config = config::Config {
+            llms: Some(config::Llm{
+                default_model: None,
+                models: Some(models),
+                ollama: None,
+            })
+        };
+        let c = std::env::current_dir().unwrap().join("test").with_extension("toml");
+        config.save_by_extension(c, true).unwrap();
+
+    }
+}
