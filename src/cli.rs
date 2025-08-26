@@ -145,21 +145,21 @@ pub struct Readme {
 }
 
 impl Readme {
-    pub fn export_path_list(&self) -> Option<Vec<PathBuf>> {
+    pub fn export_path_list(&self) -> Result<Vec<PathBuf>, std::io::Error> {
         let mut list = Vec::new();
         if let Some(p) = &self.source_path {
             list.push(PathBuf::from(p));
         }
         if let Some(l) = &self.source_dir {
             let path = PathBuf::from(l);
-            let path_list = fs::read_dir(path).ok()?;
+            let path_list = fs::read_dir(path)?;
             for i in path_list {
-                let i = i.unwrap().path();
+                let i = i?.path();
                 list.push(i);
             }
         }
 
-        Some(list)
+        Ok(list)
     }
 }
 

@@ -146,8 +146,6 @@ impl LlmReqInfo {
 }
 
 pub async fn call_llm<T: AsRef<str>>(llm_info: LlmReqInfo, prompt: T) -> Result<String, Error> {
-    let api = llm_info.resolve_api_key()?;
-
     // llm_api_rs isn't support ollama
     if llm_info.provider() == &Provider::Ollama {
         let base_url = llm_info.clone().base_url.ok_or(Error::FailedGetBaseURL)?;
@@ -163,6 +161,7 @@ pub async fn call_llm<T: AsRef<str>>(llm_info: LlmReqInfo, prompt: T) -> Result<
             Err(e) => Err(Error::OllamaE(e)),
         }
     } else {
+        let api = llm_info.resolve_api_key()?;
         let client: Box<dyn LlmProvider + Send> = match llm_info.provider {
             Provider::OpenAI => Box::new(OpenAI::new(api)),
             Provider::Gemini => Box::new(Gemini::new(api)),

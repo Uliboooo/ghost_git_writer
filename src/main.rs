@@ -135,8 +135,6 @@ impl Display for Error {
 /// Returns `Error::NotFoundConfig` if no config file is found in standard locations.
 fn resolve_config_path<T: AsRef<Path>>(path: &Option<T>) -> Result<PathBuf, Error> {
     let home_path = home::home_dir().ok_or(Error::NotFoundHome)?;
-    let p = path.as_ref().unwrap().as_ref().to_string_lossy().to_string();
-    println!("{p:?}");
 
     if let Some(p) = path {
         return Ok(p.as_ref().to_path_buf())
@@ -257,7 +255,7 @@ async fn main() -> Result<(), Error> {
             }
         }
         cli::Commands::Readme(readme) => {
-            let path_list = readme.export_path_list().unwrap();
+            let path_list = readme.export_path_list()?;
             let readme_content =
                 readme_gen::gen_readme(&path_list, model_info, lang, extra).await?;
             println!("Generated README:\n{readme_content}\n\n");
