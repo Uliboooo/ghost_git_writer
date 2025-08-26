@@ -5,3 +5,7 @@ model = "gemini-2.0-flash"
 [llms.models.ge]
 provider = "gemini"
 model = "gemini-2.0-flash"
+
+[llms.models.ge25]
+provider = "gemini"
+model = "gemini-2.5-flash"
