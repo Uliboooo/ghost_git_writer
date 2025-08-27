@@ -136,11 +136,11 @@ mod tests {
         let test_str = [
             (
                 "line1\nline2line2line2\nline3line3",
-                "╭─────────────────╮\n| line1           |\n| line2line2line2 |\n| line3line3      |\n╰─────────────────╯",
+                "╭─────────────────╮\n│ line1           │\n│ line2line2line2 │\n│ line3line3      │\n╰─────────────────╯",
             ),
             (
                 "line全角21\nli全角ne2line2line2\nline3line3",
-                "╭─────────────────────╮\n| line全角21          |\n| li全角ne2line2line2 |\n| line3line3          |\n╰─────────────────────╯",
+                "╭─────────────────────╮\n│ line全角21          │\n│ li全角ne2line2line2 │\n│ line3line3          │\n╰─────────────────────╯",
             ),
         ];
 
