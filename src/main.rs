@@ -47,7 +47,7 @@ enum Error {
     NotFoundSelectedModel,
     NotFoundDefaultModel,
     NotFoundWorkFolder,
-    CancelCommit,
+    Cancel,
 }
 
 impl From<std::io::Error> for Error {
@@ -118,7 +118,7 @@ impl Display for Error {
             Error::NotFoundHome => write!(f, "not found home directory"),
             Error::NotFoundConfig => write!(f, "not found config file"),
             Error::NotFoundWorkFolder => write!(f, "not found work folder"),
-            Error::CancelCommit => write!(f, "commit canceled"),
+            Error::Cancel => write!(f, "commit canceled"),
             Error::EnvVar => write!(f, "failed get api key as env var. please set it."),
             Error::NotFoundLlmField => write!(f, "not found llm field in config file"),
             Error::NotFoundSelectedModel => write!(f, "not found selected model in config"),
@@ -257,7 +257,7 @@ async fn main() -> Result<(), Error> {
                 git::git_commit(&work_path, &msg, git_user.0, git_user.1)?;
                 Ok(())
             } else {
-                Err(Error::CancelCommit)
+                Err(Error::Cancel)
             }
         }
         cli::Commands::Readme(readme) => {
@@ -270,12 +270,17 @@ async fn main() -> Result<(), Error> {
                 if *readme.allow_merge() || yes_no("merge to README.md? (y/n)") {
                     OpenOptions::new().append(true).open(v)?
                 } else {
-                    let path = work_path.join(format!("{}.md", get_now()));
-                    OpenOptions::new()
-                        .write(true)
-                        .create(true)
-                        .truncate(true)
-                        .open(path)?
+                    let now = get_now();
+                    let path = work_path.join(format!("{}.md", now));
+                    if yes_no("save to {now}.md?") {
+                        OpenOptions::new()
+                            .write(true)
+                            .create(true)
+                            .truncate(true)
+                            .open(path)?
+                    } else {
+                        return Err(Error::Cancel);
+                    }
                 }
             } else {
                 let path = work_path.join(format!("{}.md", get_now()));
