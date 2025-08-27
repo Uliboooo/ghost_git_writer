@@ -3,19 +3,21 @@ use std::{fmt::Display, fs, path::PathBuf};
 use clap::{self};
 use derive_getters::Getters;
 
+use crate::get_input::yes_no;
+
 #[derive(Debug)]
 pub enum Error {
     // InvalidFormatBaseUrl,
     // InvalidPortAsBaseUrl,
     Io(std::io::Error),
+    DoesNotExistSource,
 }
 
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            // Error::InvalidFormatBaseUrl => write!(f, "invalid format base url"),
-            // Error::InvalidPortAsBaseUrl => write!(f, "invalid port as base url"),
             Error::Io(e) => write!(f, "io error: {}", e),
+            Error::DoesNotExistSource => write!(f, "No source specified."),
         }
     }
 }
@@ -77,6 +79,9 @@ pub struct RootOptions {
 
     #[arg(long = "config", help = "config file path")]
     config_path: Option<String>,
+
+    #[arg(long = "oneline")]
+    oneline: bool,
 }
 
 // impl RootOptions {
@@ -145,7 +150,7 @@ pub struct Readme {
 }
 
 impl Readme {
-    pub fn export_path_list(&self) -> Result<Vec<PathBuf>, std::io::Error> {
+    pub fn export_path_list(&self) -> Result<Vec<PathBuf>, Error> {
         let mut list = Vec::new();
         if let Some(p) = &self.source_path {
             list.push(PathBuf::from(p));
@@ -156,6 +161,20 @@ impl Readme {
             for i in path_list {
                 let i = i?.path();
                 list.push(i);
+            }
+        }
+
+        if self.source_path.is_none() && self.source_dir.is_none() {
+            if yes_no("No source specified. Do you want to process the 'src/' directory? (y/n)") {
+                let src_path = std::env::current_dir()?;
+                let path_list = std::fs::read_dir(src_path)?;
+                let res = path_list
+                    .filter_map(|f| f.ok())
+                    .map(|d| d.path())
+                    .collect::<Vec<PathBuf>>();
+                list.extend(res);
+            } else {
+                return Err(Error::DoesNotExistSource);
             }
         }
 

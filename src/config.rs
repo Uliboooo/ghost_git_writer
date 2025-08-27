@@ -142,17 +142,22 @@ mod tests {
     fn save_config() {
         let def = Model::new("gemini", "gemini-2.0-flash", None, None, None);
         let mut models = HashMap::new();
-        models.insert("ge".to_string(), Model::new("gemini", "gemini-2.0-flash", None, None, None));
+        models.insert(
+            "ge".to_string(),
+            Model::new("gemini", "gemini-2.0-flash", None, None, None),
+        );
 
         let config = config::Config {
-            llms: Some(config::Llm{
+            llms: Some(config::Llm {
                 default_model: Some(def),
                 models: Some(models),
                 ollama: None,
-            })
+            }),
         };
-        let c = std::env::current_dir().unwrap().join("test").with_extension("toml");
+        let c = std::env::current_dir()
+            .unwrap()
+            .join("test")
+            .with_extension("toml");
         config.save_by_extension(c, true).unwrap();
-
     }
 }
