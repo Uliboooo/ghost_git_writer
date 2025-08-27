@@ -26,4 +26,10 @@ ggw <COMMAND> [Options]
   - `-l --lang`: change output language.(default=english). e.g. `-l japanese`
   - `-e --extra`: extra prompt. if you need to append order to llm.
   - `--config`: config file path. if you need to locate other than `~/.config/ggw/config.toml` or `~/.ggw.toml`.
-
+  - `--oneline`: output only llm's return for cli pipes
+- Options for `commit`
+  - `--auto-commit`: allow auto git commit by generated message
+- Options for `readme`
+  - `-s --source <source file list>`: source files path. A list of file paths separated by ','.
+  - `-d --directory <source dir>`: souce file folder
+  - `--merge-readme`: allow merge to existing README.md

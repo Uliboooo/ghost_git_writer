@@ -80,7 +80,7 @@ pub struct RootOptions {
     #[arg(long = "config", help = "config file path")]
     config_path: Option<String>,
 
-    #[arg(long = "oneline")]
+    #[arg(long = "oneline", help = "show only llm's return for cli pipes")]
     oneline: bool,
 }
 
@@ -137,7 +137,11 @@ pub struct Readme {
     #[command(flatten)]
     root_options: RootOptions,
 
-    #[arg(short = 's', long = "sources", help = "source files path list")]
+    #[arg(
+        short = 's',
+        long = "sources",
+        help = "source files path list. e.g. `-s path1,path2,path3`"
+    )]
     source_path: Option<String>,
 
     #[arg(short = 'd', long = "directory", help = "source folder")]
@@ -153,7 +157,12 @@ impl Readme {
     pub fn export_path_list(&self) -> Result<Vec<PathBuf>, Error> {
         let mut list = Vec::new();
         if let Some(p) = &self.source_path {
-            list.push(PathBuf::from(p));
+            let spd = p.split(',').collect::<Vec<&str>>();
+            let res = spd
+                .iter()
+                .map(|f| PathBuf::from(f))
+                .collect::<Vec<PathBuf>>();
+            list.extend(res);
         }
         if let Some(l) = &self.source_dir {
             let path = PathBuf::from(l);
