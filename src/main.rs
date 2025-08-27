@@ -281,7 +281,7 @@ async fn main() -> Result<(), Error> {
             };
             Ok(f.write_all(readme_content.as_bytes())?)
         }
-        cli::Commands::DiffSum(_diff_sum) => {
+        cli::Commands::SumDiff(_diff_sum) => {
             let res =
                 diff_sum_gen::sum_diff(diff, model_info, lang.cloned(), extra.cloned()).await?;
             println!("diff summarize:\n{res}");
