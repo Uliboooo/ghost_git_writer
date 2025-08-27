@@ -253,7 +253,7 @@ async fn main() -> Result<(), Error> {
             let msg = commit_gen::gen_commit_msg(diff, model_info, lang, extra).await?;
             println!("Generated msg: {msg}");
 
-            if *commit.auto_commit() || yes_no("commit?") {
+            if *commit.auto_commit() || yes_no("commit?(y/n)") {
                 git::git_commit(&work_path, &msg, git_user.0, git_user.1)?;
                 Ok(())
             } else {
