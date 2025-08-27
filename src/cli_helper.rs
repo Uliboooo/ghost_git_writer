@@ -77,15 +77,15 @@ impl From<&str> for Printer {
 impl Display for Printer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let max_chars = get_max_len(&self.content);
-        let start_l = format!("╭{}╮", mul_str(&"-", max_chars + 2));
-        let end_l = format!("╰{}╯", mul_str(&"-", max_chars + 2));
+        let start_l = format!("╭{}╮", mul_str(&"─", max_chars + 2));
+        let end_l = format!("╰{}╯", mul_str(&"─", max_chars + 2));
 
         let mut res = String::new();
         res.push_str(&start_l);
         for l in self.content.lines() {
             let rem = max_chars - get_str_len(l);
             let fill_space = mul_str(&" ", rem);
-            res.push_str(format!("\n| {l}{fill_space} |").as_str());
+            res.push_str(format!("\n│ {l}{fill_space} │").as_str());
         }
         res.push_str(format!("\n{}", end_l.as_str()).as_str());
 
@@ -136,11 +136,11 @@ mod tests {
         let test_str = [
             (
                 "line1\nline2line2line2\nline3line3",
-                "╭-----------------╮\n| line1           |\n| line2line2line2 |\n| line3line3      |\n╰-----------------╯",
+                "╭─────────────────╮\n| line1           |\n| line2line2line2 |\n| line3line3      |\n╰─────────────────╯",
             ),
             (
                 "line全角21\nli全角ne2line2line2\nline3line3",
-                "╭---------------------╮\n| line全角21          |\n| li全角ne2line2line2 |\n| line3line3          |\n╰---------------------╯",
+                "╭─────────────────────╮\n| line全角21          |\n| li全角ne2line2line2 |\n| line3line3          |\n╰─────────────────────╯",
             ),
         ];
 
