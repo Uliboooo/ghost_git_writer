@@ -104,8 +104,8 @@ pub enum Commands {
     #[command(name = "readme", about = "gen README by codebase")]
     Readme(Readme),
 
-    #[command(name = "diffsum", about = "summarize changes by git diff")]
-    DiffSum(DiffSum),
+    #[command(name = "sumdiff", about = "summarize changes by git diff")]
+    SumDiff(SumDiff),
 }
 
 impl RootOption for Commands {
@@ -113,7 +113,7 @@ impl RootOption for Commands {
         match self {
             Commands::Commit(commit) => commit.get_root_options(),
             Commands::Readme(readme) => readme.get_root_options(),
-            Commands::DiffSum(diff_sum) => diff_sum.get_root_options(),
+            Commands::SumDiff(diff_sum) => diff_sum.get_root_options(),
         }
     }
 }
@@ -164,7 +164,7 @@ impl Readme {
 }
 
 #[derive(Debug, clap::Args, Clone, Getters)]
-pub struct DiffSum {
+pub struct SumDiff {
     #[command(flatten)]
     root_options: RootOptions,
 }
@@ -193,7 +193,7 @@ impl RootOption for Readme {
     }
 }
 
-impl RootOption for DiffSum {
+impl RootOption for SumDiff {
     fn get_root_options(&self) -> RootOptions {
         self.root_options.clone()
     }
