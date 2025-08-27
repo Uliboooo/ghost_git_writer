@@ -267,7 +267,7 @@ async fn main() -> Result<(), Error> {
             println!("Generated README:\n{readme_content}\n\n");
             let readme_file = find_readme(&work_path);
             let mut f = if let Some(v) = readme_file {
-                if *readme.allow_merge() || yes_no("merge to README.md") {
+                if *readme.allow_merge() || yes_no("merge to README.md? (y/n)") {
                     OpenOptions::new().append(true).open(v)?
                 } else {
                     let path = work_path.join(format!("{}.md", get_now()));
