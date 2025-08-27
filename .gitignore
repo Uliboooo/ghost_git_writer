@@ -3,3 +3,4 @@ win_ggw.zip
 **/*.DS_Store
 /release/
 test_config.toml
+src_old/

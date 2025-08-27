@@ -1,70 +1,19 @@
-use std::{
-    io::{Write, stdout},
-    time::Duration,
-};
+use std::fmt::Display;
 
-use tokio::{runtime::Runtime, task, time};
-
-use crate::Error;
-
-pub fn run_with_spinner<F, Fut, T>(task_fn: F) -> Result<T, Error>
-where
-    F: FnOnce() -> Fut + Send + 'static,
-    Fut: std::future::Future<Output = T> + Send + 'static,
-    T: Send + 'static,
-{
-    let rt = Runtime::new().map_err(Error::IoE)?;
-    Ok(rt.block_on(spinner(task_fn)))
+pub enum Error {
+    Io(std::io::Error),
 }
 
-pub async fn spinner<F, Fut, T>(task_fn: F) -> T
-where
-    F: FnOnce() -> Fut + Send + 'static,
-    Fut: std::future::Future<Output = T> + Send + 'static,
-    T: Send + 'static,
-{
-    let spinner_handle = task::spawn(async {
-        let icons = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇⠏"];
-        let mut i = 0;
-        loop {
-            print!("\r{}", icons[i % icons.len()]);
-            stdout().flush().unwrap();
-            i += 1;
-            time::sleep(Duration::from_millis(100)).await;
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::Io(e) => write!(f, "io error: {}", e),
         }
-    });
-
-    let res = task_fn().await;
-    spinner_handle.abort();
-    res
+    }
 }
 
-#[cfg(test)]
-mod tests {
-    use std::time::Duration;
-
-    use tokio::{runtime::Runtime, time};
-
-    use super::spinner;
-
-    pub fn a<F, Fut, T>(task_fn: F) -> T
-    where
-        F: FnOnce() -> Fut + Send + 'static,
-        Fut: std::future::Future<Output = T> + Send + 'static,
-        T: Send + 'static,
-    {
-        let rt = Runtime::new().unwrap();
-        rt.block_on(spinner(task_fn))
-    }
-
-    async fn fetch_data_from_server() -> String {
-        time::sleep(Duration::from_secs(3)).await;
-        "サーバーデータ".to_string()
-    }
-
-    #[test]
-    fn aa() {
-        let r = a(fetch_data_from_server);
-        println!("{r}");
+impl From<std::io::Error> for Error {
+    fn from(value: std::io::Error) -> Self {
+        Self::Io(value)
     }
 }
