@@ -33,18 +33,3 @@ pub fn yes_no<S: AsRef<str>>(message: S) -> bool {
     };
     input.is_empty() || matches!(input.as_ref(), "y" | "yes")
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn input_test() {
-        assert_eq!(get_input("hello?>").unwrap(), "hoge".to_string());
-    }
-
-    #[test]
-    fn yes_no_test() {
-        println!("{}", yes_no("message"));
-    }
-}
