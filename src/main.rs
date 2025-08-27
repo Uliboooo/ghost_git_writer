@@ -17,7 +17,13 @@ use crate::{
 };
 use clap::Parser;
 use easy_storage::Storeable;
-use std::{env, fmt::Display, fs::OpenOptions, io::Write, path::{Path, PathBuf}};
+use std::{
+    env,
+    fmt::Display,
+    fs::OpenOptions,
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 const ANTHROPIC_API: &str = "GGW_ANTHROPIC_API";
 const GEMINI_API: &str = "GGW_GEMINI_API";
@@ -100,7 +106,7 @@ impl From<env::VarError> for Error {
 
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self{
+        match self {
             Error::Io(error) => write!(f, "io error: {error}"),
             Error::Store(error) => write!(f, "save error: {error}"),
             Error::Llm(error) => write!(f, "llm error: {error}"),
@@ -137,7 +143,7 @@ fn resolve_config_path<T: AsRef<Path>>(path: &Option<T>) -> Result<PathBuf, Erro
     let home_path = home::home_dir().ok_or(Error::NotFoundHome)?;
 
     if let Some(p) = path {
-        return Ok(p.as_ref().to_path_buf())
+        return Ok(p.as_ref().to_path_buf());
     }
 
     let primary = home_path

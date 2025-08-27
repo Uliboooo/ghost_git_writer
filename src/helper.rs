@@ -43,9 +43,10 @@ pub fn load_codebase<P: AsRef<Path>>(path_list: &Vec<P>) -> Result<String, Error
     for f in path_list {
         let p = f.as_ref();
         if p.exists()
-            && let Ok(s) = fs::read_to_string(p) {
-                file_contes.push(format!("path: {}\n\n{s}", f.as_ref().to_string_lossy()));
-            }
+            && let Ok(s) = fs::read_to_string(p)
+        {
+            file_contes.push(format!("path: {}\n\n{s}", f.as_ref().to_string_lossy()));
+        }
     }
 
     Ok(file_contes.into_iter().collect::<String>())
