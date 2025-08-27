@@ -282,7 +282,7 @@ async fn main() -> Result<(), Error> {
                     } else {
                         let now = get_now();
                         let path = work_path.join(format!("{}.md", now));
-                        if yes_no("save to {now}.md?") {
+                        if yes_no("save to {now}.md?(y/n)") {
                             OpenOptions::new()
                                 .write(true)
                                 .create(true)
