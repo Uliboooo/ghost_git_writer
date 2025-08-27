@@ -79,6 +79,9 @@ pub struct RootOptions {
 
     #[arg(long = "config", help = "config file path")]
     config_path: Option<String>,
+
+    #[arg(long = "oneline")]
+    oneline: bool,
 }
 
 // impl RootOptions {

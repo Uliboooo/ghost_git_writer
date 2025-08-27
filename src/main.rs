@@ -251,52 +251,68 @@ async fn main() -> Result<(), Error> {
     match &cli.subcommand {
         cli::Commands::Commit(commit) => {
             let msg = commit_gen::gen_commit_msg(diff, model_info, lang, extra).await?;
-            println!("Generated msg: {msg}");
-
-            if *commit.auto_commit() || yes_no("commit?(y/n)") {
-                git::git_commit(&work_path, &msg, git_user.0, git_user.1)?;
+            if *commit.get_root_options().oneline() {
+                println!("{msg}");
                 Ok(())
             } else {
-                Err(Error::Cancel)
+                let fd_msg = cli_helper::Printer::from(&msg);
+                println!("Generated msg:\n{fd_msg}");
+
+                if *commit.auto_commit() || yes_no("commit?(y/n)") {
+                    git::git_commit(&work_path, &msg, git_user.0, git_user.1)?;
+                    Ok(())
+                } else {
+                    Err(Error::Cancel)
+                }
             }
         }
         cli::Commands::Readme(readme) => {
             let path_list = readme.export_path_list()?;
             let readme_content =
                 readme_gen::gen_readme(&path_list, model_info, lang, extra).await?;
-            println!("Generated README:\n{readme_content}\n\n");
-            let readme_file = find_readme(&work_path);
-            let mut f = if let Some(v) = readme_file {
-                if *readme.allow_merge() || yes_no("merge to README.md? (y/n)") {
-                    OpenOptions::new().append(true).open(v)?
-                } else {
-                    let now = get_now();
-                    let path = work_path.join(format!("{}.md", now));
-                    if yes_no("save to {now}.md?") {
-                        OpenOptions::new()
-                            .write(true)
-                            .create(true)
-                            .truncate(true)
-                            .open(path)?
-                    } else {
-                        return Err(Error::Cancel);
-                    }
-                }
+            if *readme.get_root_options().oneline() {
+                println!("{readme_content}");
+                Ok(())
             } else {
-                let path = work_path.join(format!("{}.md", get_now()));
-                OpenOptions::new()
-                    .write(true)
-                    .create(true)
-                    .truncate(true)
-                    .open(path)?
-            };
-            Ok(f.write_all(readme_content.as_bytes())?)
+                println!("Generated README:\n{readme_content}\n\n");
+                let readme_file = find_readme(&work_path);
+                let mut f = if let Some(v) = readme_file {
+                    if *readme.allow_merge() || yes_no("merge to README.md? (y/n)") {
+                        OpenOptions::new().append(true).open(v)?
+                    } else {
+                        let now = get_now();
+                        let path = work_path.join(format!("{}.md", now));
+                        if yes_no("save to {now}.md?") {
+                            OpenOptions::new()
+                                .write(true)
+                                .create(true)
+                                .truncate(true)
+                                .open(path)?
+                        } else {
+                            return Err(Error::Cancel);
+                        }
+                    }
+                } else {
+                    let path = work_path.join(format!("{}.md", get_now()));
+                    OpenOptions::new()
+                        .write(true)
+                        .create(true)
+                        .truncate(true)
+                        .open(path)?
+                };
+                Ok(f.write_all(readme_content.as_bytes())?)
+            }
         }
         cli::Commands::SumDiff(_diff_sum) => {
             let res =
                 diff_sum_gen::sum_diff(diff, model_info, lang.cloned(), extra.cloned()).await?;
-            println!("diff summarize:\n{res}");
-            Ok(())
+            if *_diff_sum.get_root_options().oneline() {
+                println!("{res}");
+                Ok(())
+            } else {
+                println!("diff summarize:\n{res}");
+                Ok(())
+            }
         }
     }
 }
