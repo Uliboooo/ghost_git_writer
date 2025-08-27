@@ -11,6 +11,7 @@ pub enum Error {
     // InvalidPortAsBaseUrl,
     Io(std::io::Error),
     DoesNotExistSource,
+    NotFoundSrc,
 }
 
 impl Display for Error {
@@ -18,6 +19,7 @@ impl Display for Error {
         match self {
             Error::Io(e) => write!(f, "io error: {}", e),
             Error::DoesNotExistSource => write!(f, "No source specified."),
+            Error::NotFoundSrc => write!(f, "not dound src folder"),
         }
     }
 }
@@ -175,7 +177,14 @@ impl Readme {
 
         if self.source_path.is_none() && self.source_dir.is_none() {
             if yes_no("No source specified. Do you want to process the 'src/' directory? (y/n)") {
-                let src_path = std::env::current_dir()?;
+                let src_path = {
+                    let p = std::env::current_dir()?.join("src");
+                    if p.exists() {
+                        p
+                    } else {
+                        return Err(Error::NotFoundSrc);
+                    }
+                };
                 let path_list = std::fs::read_dir(src_path)?;
                 let res = path_list
                     .filter_map(|f| f.ok())
