@@ -8,6 +8,7 @@ use llm_api_rs::{
 };
 use ollama_rs::{Ollama, generation::completion::request::GenerationRequest};
 
+use crate::cli_helper::Spinner;
 use crate::{cli_helper, config};
 
 #[derive(Debug)]
@@ -146,49 +147,55 @@ impl LlmReqInfo {
 }
 
 pub async fn call_llm<T: AsRef<str>>(llm_info: LlmReqInfo, prompt: T) -> Result<String, Error> {
-    // llm_api_rs isn't support ollama
-    if llm_info.provider() == &Provider::Ollama {
-        let base_url = llm_info.clone().base_url.ok_or(Error::FailedGetBaseURL)?;
-        let o_res = Ollama::new(base_url.0, base_url.1);
-        let res = o_res
-            .generate(GenerationRequest::new(
-                llm_info.clone().model,
-                prompt.as_ref(),
-            ))
-            .await;
-        match res {
-            Ok(v) => Ok(v.response.to_string()),
-            Err(e) => Err(Error::OllamaE(e)),
-        }
-    } else {
-        let api = llm_info.resolve_api_key()?;
-        let client: Box<dyn LlmProvider + Send> = match llm_info.provider {
-            Provider::OpenAI => Box::new(OpenAI::new(api)),
-            Provider::Gemini => Box::new(Gemini::new(api)),
-            Provider::Anthropic => Box::new(Anthropic::new(api)),
-            Provider::DeepSeek => Box::new(DeepSeek::new(api)),
-            _ => return Err(Error::NotSuppoeredProvider),
-        };
-
-        let request = ChatCompletionRequest {
-            model: llm_info.model().clone(),
-            messages: vec![ChatMessage {
-                role: "user".to_string(),
-                content: prompt.as_ref().to_string(),
-            }],
-            temperature: *llm_info.temp(),
-            max_tokens: *llm_info.max_tokens(),
-        };
-
-        match client.chat_completion(request).await {
-            Ok(response) => {
-                if let Some(choice) = response.choices.first() {
-                    Ok(choice.message.content.clone())
-                } else {
-                    Ok(String::new())
-                }
+    let spinner = Spinner::new("Calling LLM...");
+    let result = async {
+        // llm_api_rs isn't support ollama
+        if llm_info.provider() == &Provider::Ollama {
+            let base_url = llm_info.clone().base_url.ok_or(Error::FailedGetBaseURL)?;
+            let o_res = Ollama::new(base_url.0, base_url.1);
+            let res = o_res
+                .generate(GenerationRequest::new(
+                    llm_info.clone().model,
+                    prompt.as_ref(),
+                ))
+                .await;
+            match res {
+                Ok(v) => Ok(v.response.to_string()),
+                Err(e) => Err(Error::OllamaE(e)),
             }
-            Err(e) => Err(Error::ChatCompletion(e.to_string())),
+        } else {
+            let api = llm_info.resolve_api_key()?;
+            let client: Box<dyn LlmProvider + Send> = match llm_info.provider {
+                Provider::OpenAI => Box::new(OpenAI::new(api)),
+                Provider::Gemini => Box::new(Gemini::new(api)),
+                Provider::Anthropic => Box::new(Anthropic::new(api)),
+                Provider::DeepSeek => Box::new(DeepSeek::new(api)),
+                _ => return Err(Error::NotSuppoeredProvider),
+            };
+
+            let request = ChatCompletionRequest {
+                model: llm_info.model().clone(),
+                messages: vec![ChatMessage {
+                    role: "user".to_string(),
+                    content: prompt.as_ref().to_string(),
+                }],
+                temperature: *llm_info.temp(),
+                max_tokens: *llm_info.max_tokens(),
+            };
+
+            match client.chat_completion(request).await {
+                Ok(response) => {
+                    if let Some(choice) = response.choices.first() {
+                        Ok(choice.message.content.clone())
+                    } else {
+                        Ok(String::new())
+                    }
+                }
+                Err(e) => Err(Error::ChatCompletion(e.to_string())),
+            }
         }
     }
+    .await;
+    spinner.stop("LLM call finished.");
+    result
 }
