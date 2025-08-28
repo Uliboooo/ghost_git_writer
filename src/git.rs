@@ -1,30 +1,30 @@
-use std::{fmt::Display, path::Path};
+use std::path::Path;
 
 use git2::{DiffOptions, IndexAddOption, Repository, Signature};
 
-#[derive(Debug)]
-pub enum Error {
-    Git(git2::Error),
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Error::Git(e) => write!(f, "git error: {}", e),
-        }
-    }
-}
-
-impl From<git2::Error> for Error {
-    fn from(value: git2::Error) -> Self {
-        Self::Git(value)
-    }
-}
+// #[derive(Debug)]
+// pub enum Error {
+//     Git(git2::Error),
+// }
+//
+// impl Display for Error {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         match self {
+//             Error::Git(e) => write!(f, "git error: {}", e),
+//         }
+//     }
+// }
+//
+// impl From<git2::Error> for Error {
+//     fn from(value: git2::Error) -> Self {
+//         Self::Git(value)
+//     }
+// }
 
 pub fn get_diff<T: AsRef<str>, P: AsRef<Path>>(
     points: (Option<T>, Option<T>),
     path: P,
-) -> Result<String, Error> {
+) -> Result<String, git2::Error> {
     let repo = Repository::open(path)?;
 
     let points = (
@@ -69,7 +69,7 @@ pub fn git_commit<P: AsRef<Path>, M: AsRef<str>, T: AsRef<str>>(
     msg: &M,
     name: T,
     email: T,
-) -> Result<(), Error> {
+) -> Result<(), git2::Error> {
     let repo = Repository::open(path)?;
     let mut index = repo.index()?;
     index.add_all(["*"].iter(), IndexAddOption::CHECK_PATHSPEC, None)?;
@@ -84,6 +84,7 @@ pub fn git_commit<P: AsRef<Path>, M: AsRef<str>, T: AsRef<str>>(
         .and_then(|h| h.resolve().ok())
         .and_then(|r| r.peel_to_commit().ok());
 
+            // Error::PortIsNotNumber => write!(f, "failed parse port to number"),
     let sig = Signature::now(name.as_ref(), email.as_ref())?;
 
     let _commit_id = if let Some(pa) = parent_commit {
@@ -96,7 +97,7 @@ pub fn git_commit<P: AsRef<Path>, M: AsRef<str>, T: AsRef<str>>(
     Ok(())
 }
 
-pub fn get_user_email() -> Result<(String, String), Error> {
+pub fn get_user_email() -> Result<(String, String), git2::Error> {
     let config = git2::Config::open_default()?;
 
     Ok((

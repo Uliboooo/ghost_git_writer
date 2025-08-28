@@ -37,8 +37,8 @@ enum Error {
     Llm(llm::Error),
     Config(config::Error),
     Cli(cli::Error),
-    Git(git::Error),
-    Cmt(commit_gen::Error),
+    Git(git2::Error),
+    // Cmt(commit_gen::Error),
     Rdm(readme_gen::Error),
     EnvVar,
     NotFoundHome,
@@ -74,17 +74,17 @@ impl From<cli::Error> for Error {
     }
 }
 
-impl From<git::Error> for Error {
-    fn from(value: git::Error) -> Self {
+impl From<git2::Error> for Error {
+    fn from(value: git2::Error) -> Self {
         Self::Git(value)
     }
 }
 
-impl From<commit_gen::Error> for Error {
-    fn from(value: commit_gen::Error) -> Self {
-        Self::Cmt(value)
-    }
-}
+// impl From<commit_gen::Error> for Error {
+//     fn from(value: commit_gen::Error) -> Self {
+//         Self::Cmt(value)
+//     }
+// }
 
 impl From<readme_gen::Error> for Error {
     fn from(value: readme_gen::Error) -> Self {
@@ -113,7 +113,7 @@ impl Display for Error {
             Error::Config(error) => write!(f, "config error: {error}"),
             Error::Cli(error) => write!(f, "cli error: {error}"),
             Error::Git(error) => write!(f, "git error: {error}"),
-            Error::Cmt(error) => write!(f, "commit gen error: {error}"),
+            // Error::Cmt(error) => write!(f, "commit gen error: {error}"),
             Error::Rdm(error) => write!(f, "readme gen error: {error}"),
             Error::NotFoundHome => write!(f, "not found home directory"),
             Error::NotFoundConfig => write!(f, "not found config file"),

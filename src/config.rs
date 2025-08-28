@@ -7,7 +7,6 @@ use url::Url;
 
 #[derive(Debug, PartialEq)]
 pub enum Error {
-    // PortIsNotNumber,
     Url(url::ParseError),
     NotFoundPort,
     NotFoundHost,
@@ -16,7 +15,6 @@ pub enum Error {
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            // Error::PortIsNotNumber => write!(f, "failed parse port to number"),
             Error::Url(parse_error) => write!(f, "failed parse url {parse_error}"),
             Error::NotFoundPort => write!(f, "not found port in base_url"),
             Error::NotFoundHost => write!(f, "not found host (exmaple.com)"),

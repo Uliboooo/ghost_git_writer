@@ -1,5 +1,4 @@
 use std::fmt::Display;
-
 use derive_getters::Getters;
 use llm_api_rs::{
     self, LlmProvider,
@@ -7,9 +6,8 @@ use llm_api_rs::{
     providers::{Anthropic, DeepSeek, Gemini, OpenAI},
 };
 use ollama_rs::{Ollama, generation::completion::request::GenerationRequest};
-
 use crate::cli_helper::Spinner;
-use crate::{cli_helper, config};
+use crate::config;
 
 #[derive(Debug)]
 pub enum Error {
@@ -17,7 +15,7 @@ pub enum Error {
     FailedGetAPIKey,
     FailedGetBaseURL,
     ChatCompletion(String),
-    CliHelper(String),
+    // CliHelper(String),
     OllamaE(ollama_rs::error::OllamaError),
     Conf(config::Error),
 }
@@ -29,20 +27,20 @@ impl Display for Error {
             Error::FailedGetAPIKey => write!(f, "failed to get api key"),
             Error::FailedGetBaseURL => write!(f, "failed to get base url"),
             Error::ChatCompletion(e) => write!(f, "chat completion error: {}", e),
-            Error::CliHelper(e) => write!(f, "cli helper error: {}", e),
+            // Error::CliHelper(e) => write!(f, "cli helper error: {}", e),
             Error::OllamaE(e) => write!(f, "ollama error: {}", e),
             Error::Conf(error) => write!(f, "config error {error}"),
         }
     }
 }
 
-impl From<cli_helper::Error> for Error {
-    fn from(e: cli_helper::Error) -> Self {
-        match e {
-            cli_helper::Error::Io(io_err) => Error::CliHelper(io_err.to_string()),
-        }
-    }
-}
+// impl From<cli_helper::Error> for Error {
+//     fn from(e: cli_helper::Error) -> Self {
+//         match e {
+//             cli_helper::Error::Io(io_err) => Error::CliHelper(io_err.to_string()),
+//         }
+//     }
+// }
 impl From<ollama_rs::error::OllamaError> for Error {
     fn from(value: ollama_rs::error::OllamaError) -> Self {
         Self::OllamaE(value)
@@ -84,10 +82,6 @@ impl Provider {
         let p = Provider::try_from(prov.as_ref())?;
         Ok(self == &p)
     }
-
-    // pub fn is_ollama(&self) -> bool {
-    //     self == &Provider::Ollama
-    // }
 }
 
 #[derive(Debug, Getters, Clone)]
