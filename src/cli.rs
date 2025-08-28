@@ -1,9 +1,7 @@
-use std::{fmt::Display, fs, path::PathBuf};
-
+use crate::get_input::yes_no;
 use clap::{self};
 use derive_getters::Getters;
-
-use crate::get_input::yes_no;
+use std::{fmt::Display, fs, path::PathBuf};
 
 #[derive(Debug)]
 pub enum Error {
@@ -86,6 +84,32 @@ pub struct RootOptions {
     oneline: bool,
 }
 
+pub trait DiffOption {
+    fn get_diff_options(&self) -> DiffOptions;
+    fn resolve_diff_commit(&self) -> (Option<String>, Option<String>) {
+        match self.get_diff_options().diff_commit {
+            Some(v) => {
+                let sp_v = v.split('/').collect::<Vec<_>>();
+                let ops_num = sp_v.len();
+                if ops_num >= 2 {
+                    (Some(sp_v[0].to_string()), Some(sp_v[1].to_string()))
+                } else if ops_num == 1 {
+                    (Some(sp_v[0].to_string()), None)
+                } else {
+                    (None, None)
+                }
+            }
+            None => (None, None),
+        }
+    }
+}
+
+#[derive(Debug, clap::Args, Clone, Getters)]
+pub struct DiffOptions {
+    #[arg(short = 'D', long = "diff", help = "diff points")]
+    diff_commit: Option<String>,
+}
+
 #[derive(Debug, clap::Subcommand, Clone)]
 pub enum Commands {
     #[command(name = "commit", about = "gen git commit msg")]
@@ -113,8 +137,17 @@ pub struct Commit {
     #[command(flatten)]
     root_options: RootOptions,
 
+    #[command(flatten)]
+    diff_opts: DiffOptions,
+
     #[arg(long = "auto-commit", help = "allow auto git commit")]
     auto_commit: bool,
+}
+
+impl DiffOption for Commit {
+    fn get_diff_options(&self) -> DiffOptions {
+        self.diff_opts.clone()
+    }
 }
 
 #[derive(Debug, clap::Args, Clone, Getters)]
@@ -143,10 +176,7 @@ impl Readme {
         let mut list = Vec::new();
         if let Some(p) = &self.source_path {
             let spd = p.split(',').collect::<Vec<&str>>();
-            let res = spd
-                .iter()
-                .map(PathBuf::from)
-                .collect::<Vec<_>>();
+            let res = spd.iter().map(PathBuf::from).collect::<Vec<_>>();
             list.extend(res);
         }
         if let Some(l) = &self.source_dir {
@@ -187,6 +217,15 @@ impl Readme {
 pub struct SumDiff {
     #[command(flatten)]
     root_options: RootOptions,
+
+    #[command(flatten)]
+    diff_opts: DiffOptions,
+}
+
+impl DiffOption for SumDiff {
+    fn get_diff_options(&self) -> DiffOptions {
+        self.diff_opts.clone()
+    }
 }
 
 #[derive(Debug, clap::Args, Clone)]
@@ -218,3 +257,4 @@ impl RootOption for SumDiff {
         self.root_options.clone()
     }
 }
+

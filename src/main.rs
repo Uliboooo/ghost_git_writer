@@ -10,7 +10,7 @@ mod llm;
 mod readme_gen;
 
 use crate::{
-    cli::RootOption,
+    cli::{DiffOption, RootOption},
     config::Config,
     get_input::yes_no,
     helper::{find_readme, get_now},
@@ -240,7 +240,7 @@ async fn main() -> Result<(), Error> {
 
     let model_info = llm::LlmReqInfo::new_with_api(model, api_key)?;
 
-    let diff = git::get_diff(&work_path)?;
+    //let diff = git::get_diff((None, None), &work_path)?;
 
     let git_user = git::get_user_email()?;
 
@@ -250,6 +250,12 @@ async fn main() -> Result<(), Error> {
 
     match &cli.subcommand {
         cli::Commands::Commit(commit) => {
+            let diff = {
+                let diff_opt = commit.resolve_diff_commit();
+                git::get_diff(diff_opt, &work_path)
+            }?;
+
+
             let msg = commit_gen::gen_commit_msg(diff, model_info, lang, extra).await?;
             if *commit.get_root_options().oneline() {
                 println!("{msg}");
@@ -304,6 +310,10 @@ async fn main() -> Result<(), Error> {
             }
         }
         cli::Commands::SumDiff(_diff_sum) => {
+            let diff = {
+                let diff_s = _diff_sum.resolve_diff_commit();
+                git::get_diff(diff_s, &work_path)
+            }?;
             let res =
                 diff_sum_gen::sum_diff(diff, model_info, lang.cloned(), extra.cloned()).await?;
             if *_diff_sum.get_root_options().oneline() {
