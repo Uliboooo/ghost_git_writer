@@ -136,7 +136,7 @@ mod tests {
         let mut models = HashMap::new();
         models.insert(
             "ge".to_string(),
-            Model::new("gemini", "gemini-2.0-flash", None, None, None),
+            Model::new("gemini", "gemini-2.5-flash", None, None, None),
         );
 
         let config = config::Config {
@@ -148,7 +148,7 @@ mod tests {
         };
         let c = std::env::current_dir()
             .unwrap()
-            .join("test")
+            .join("config_template")
             .with_extension("toml");
         config.save_by_extension(c, true).unwrap();
     }
