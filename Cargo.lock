@@ -442,7 +442,7 @@ dependencies = [
 
 [[package]]
 name = "ghost_git_writer"
-version = "0.13.7"
+version = "0.13.9"
 dependencies = [
  "chrono",
  "clap",
@@ -456,6 +456,7 @@ dependencies = [
  "serde",
  "tokio",
  "unicode-width",
+ "url",
 ]
 
 [[package]]

@@ -2,22 +2,31 @@ use std::fmt::Display;
 
 use derive_getters::Getters;
 use serde::{Deserialize, Serialize};
+use url::Url;
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Error {
-    //NotFoundAlias,
-    InvalidPortFormat,
-    InvalidBaseUrlFormat,
+    // PortIsNotNumber,
+    Url(url::ParseError),
+    NotFoundPort,
+    NotFoundHost,
 }
 
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            //Error::NotFoundAlias => write!(f, "not found alias"),
-            Error::InvalidPortFormat => write!(f, "invalid port format"),
-            Error::InvalidBaseUrlFormat => write!(f, "invalid base url format"),
+            // Error::PortIsNotNumber => write!(f, "failed parse port to number"),
+            Error::Url(parse_error) => write!(f, "failed parse url {parse_error}"),
+            Error::NotFoundPort => write!(f, "not found port in base_url"),
+            Error::NotFoundHost => write!(f, "not found host (exmaple.com)"),
         }
+    }
+}
+
+impl From<url::ParseError> for Error {
+    fn from(value: url::ParseError) -> Self {
+        Self::Url(value)
     }
 }
 
@@ -25,22 +34,6 @@ impl Display for Error {
 pub struct Config {
     llms: Option<Llm>,
 }
-
-// impl Config {
-//     pub fn exist_alias<T: AsRef<str>>(&self, alias: T) -> bool {
-//         match &self.llms {
-//             Some(v) => match &v.models {
-//                 Some(vv) => vv.contains_key(&alias.as_ref().to_string()),
-//                 None => false,
-//             },
-//             None => false,
-//         }
-//     }
-//
-//     // pub fn get_alias<T: AsRef<str>>(&self, alias: T) -> Option<Model> {
-//     //     self.llms.as_ref().and_then(|v| v.get_model(alias))
-//     // }
-// }
 
 impl easy_storage::Storeable for Config {}
 
@@ -52,17 +45,6 @@ pub struct Llm {
 }
 
 impl Llm {
-    // pub fn exist_alias<T: AsRef<str>>(&self, alias: T) -> bool {
-    //     match self.models() {
-    //         Some(v) => v.contains_key(&alias.as_ref().to_string()),
-    //         None => false,
-    //     }
-    // }
-
-    // pub fn exist_default_alias(&self) -> bool {
-    //     self.default_model.is_some()
-    // }
-    //
     pub fn get_default(&self) -> Option<Model> {
         self.default_model.clone()
     }
@@ -104,17 +86,27 @@ impl Model {
     }
 
     pub fn resolve_base_url(&self) -> Result<Option<(String, u16)>, Error> {
-        match &self.base_url {
-            Some(url) => match url.split_once(':') {
-                Some(vv) => {
-                    let port = vv.1.parse::<u16>().map_err(|_| Error::InvalidPortFormat)?;
-                    Ok(Some((vv.0.to_string(), port)))
-                }
-                None => Err(Error::InvalidBaseUrlFormat),
-            },
-            None => Ok(None),
-        }
+        // let url = match &self.base_url {
+        //     Some(v) => v,
+        //     None => return Ok(None),
+        // };
+        // let parsed_url = Url::parse(url)?;
+        // let port = parsed_url.port().unwrap();
+        // let sh = parsed_url.scheme();
+        // let host = parsed_url.host_str().unwrap();
+        // let url = format!("{sh}://{host}{}", parsed_url.path());
+        // Ok(Some((url, port)))
+        self.base_url.as_ref().map(parse_port).transpose()
     }
+}
+
+fn parse_port<T: AsRef<str>>(url: T) -> Result<(String, u16), Error>{
+        let parsed_url = Url::parse(url.as_ref())?;
+        let port = parsed_url.port().ok_or(Error::NotFoundPort)?;
+        let sh = parsed_url.scheme();
+        let host = parsed_url.host_str().ok_or(Error::NotFoundHost)?;
+        let url = format!("{sh}://{host}{}", parsed_url.path());
+        Ok((url, port))
 }
 
 #[derive(Debug, Getters, Serialize, Deserialize, Clone)]
@@ -136,7 +128,7 @@ mod tests {
 
     use easy_storage::Storeable;
 
-    use crate::config::{self, Model};
+    use crate::config::{self, parse_port, Error, Model};
 
     #[test]
     fn save_config() {
@@ -144,7 +136,7 @@ mod tests {
         let mut models = HashMap::new();
         models.insert(
             "ge".to_string(),
-            Model::new("gemini", "gemini-2.0-flash", None, None, None),
+            Model::new("gemini", "gemini-2.5-flash", None, None, None),
         );
 
         let config = config::Config {
@@ -156,8 +148,23 @@ mod tests {
         };
         let c = std::env::current_dir()
             .unwrap()
-            .join("test")
+            .join("config_template")
             .with_extension("toml");
         config.save_by_extension(c, true).unwrap();
+    }
+
+    #[test]
+    fn parsed_url_test() {
+        let test_urls = 
+            [("http://localhost:11434", Ok(("http://localhost/".to_string(), 11434))),
+            ("http://foo.com:11434/bar", Ok(("http://foo.com/bar".to_string(), 11434))),
+            ("foo.com:11434/bar", Err(Error::NotFoundPort)),
+            ("foo.com/bar", Err(Error::Url(url::ParseError::RelativeUrlWithoutBase)))
+            ];
+
+        for u in test_urls {
+            let parsed = parse_port(u.0);
+            assert_eq!(parsed, u.1);
+        }
     }
 }

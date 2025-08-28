@@ -52,21 +52,6 @@ pub fn load_codebase<P: AsRef<Path>>(path_list: &Vec<P>) -> Result<String, Error
     Ok(file_contes.into_iter().collect::<String>())
 }
 
-// pub fn exist_readme<T: AsRef<Path>>(work_path: T) -> bool {
-//     fs::read_dir(work_path)
-//         .ok()
-//         .into_iter()
-//         .flat_map(|f| f)
-//         .filter_map(|ent| ent.ok())
-//         .any(|ent| {
-//             ent.path()
-//                 .file_name()
-//                 .and_then(|n| n.to_str())
-//                 .map(|s| s.eq_ignore_ascii_case("readme.md"))
-//                 .unwrap_or(false)
-//         })
-// }
-
 pub fn find_readme<T: AsRef<Path>>(work_path: T) -> Option<PathBuf> {
     fs::read_dir(work_path)
         .ok()?

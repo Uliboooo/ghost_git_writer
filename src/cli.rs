@@ -11,6 +11,7 @@ pub enum Error {
     // InvalidPortAsBaseUrl,
     Io(std::io::Error),
     DoesNotExistSource,
+    NotFoundSrc,
 }
 
 impl Display for Error {
@@ -18,6 +19,7 @@ impl Display for Error {
         match self {
             Error::Io(e) => write!(f, "io error: {}", e),
             Error::DoesNotExistSource => write!(f, "No source specified."),
+            Error::NotFoundSrc => write!(f, "not dound src folder"),
         }
     }
 }
@@ -84,23 +86,6 @@ pub struct RootOptions {
     oneline: bool,
 }
 
-// impl RootOptions {
-//     pub fn parse_base_url(&self) -> Result<Option<(String, u16)>, Error> {
-//         match self.clone().base_url {
-//             Some(v) => match v.split_once('/') {
-//                 Some(vv) => {
-//                     let port =
-//                         vv.1.parse::<u16>()
-//                             .map_err(|_| Error::InvalidPortAsBaseUrl)?;
-//                     Ok(Some((vv.0.to_string(), port)))
-//                 }
-//                 None => Err(Error::InvalidFormatBaseUrl),
-//             },
-//             None => Ok(None),
-//         }
-//     }
-// }
-
 #[derive(Debug, clap::Subcommand, Clone)]
 pub enum Commands {
     #[command(name = "commit", about = "gen git commit msg")]
@@ -160,8 +145,8 @@ impl Readme {
             let spd = p.split(',').collect::<Vec<&str>>();
             let res = spd
                 .iter()
-                .map(|f| PathBuf::from(f))
-                .collect::<Vec<PathBuf>>();
+                .map(PathBuf::from)
+                .collect::<Vec<_>>();
             list.extend(res);
         }
         if let Some(l) = &self.source_dir {
@@ -175,7 +160,14 @@ impl Readme {
 
         if self.source_path.is_none() && self.source_dir.is_none() {
             if yes_no("No source specified. Do you want to process the 'src/' directory? (y/n)") {
-                let src_path = std::env::current_dir()?;
+                let src_path = {
+                    let p = std::env::current_dir()?.join("src");
+                    if p.exists() {
+                        p
+                    } else {
+                        return Err(Error::NotFoundSrc);
+                    }
+                };
                 let path_list = std::fs::read_dir(src_path)?;
                 let res = path_list
                     .filter_map(|f| f.ok())
