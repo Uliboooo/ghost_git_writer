@@ -54,10 +54,6 @@ pub fn get_diff<T: AsRef<str>, P: AsRef<Path>>(
         }
     }?;
 
-    // let head_commit = repo.head()?.peel_to_commit()?;
-    // let head_tree = head_commit.tree()?;
-    // let diff = repo.diff_tree_to_workdir(Some(&head_tree), Some(&mut DiffOptions::new()))?;
-
     let mut pa = String::new();
     diff.print(git2::DiffFormat::Patch, |_, _, line| {
         if let Ok(t) = std::str::from_utf8(line.content()) {
