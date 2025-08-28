@@ -86,23 +86,6 @@ pub struct RootOptions {
     oneline: bool,
 }
 
-// impl RootOptions {
-//     pub fn parse_base_url(&self) -> Result<Option<(String, u16)>, Error> {
-//         match self.clone().base_url {
-//             Some(v) => match v.split_once('/') {
-//                 Some(vv) => {
-//                     let port =
-//                         vv.1.parse::<u16>()
-//                             .map_err(|_| Error::InvalidPortAsBaseUrl)?;
-//                     Ok(Some((vv.0.to_string(), port)))
-//                 }
-//                 None => Err(Error::InvalidFormatBaseUrl),
-//             },
-//             None => Ok(None),
-//         }
-//     }
-// }
-
 #[derive(Debug, clap::Subcommand, Clone)]
 pub enum Commands {
     #[command(name = "commit", about = "gen git commit msg")]
@@ -162,8 +145,8 @@ impl Readme {
             let spd = p.split(',').collect::<Vec<&str>>();
             let res = spd
                 .iter()
-                .map(|f| PathBuf::from(f))
-                .collect::<Vec<PathBuf>>();
+                .map(PathBuf::from)
+                .collect::<Vec<_>>();
             list.extend(res);
         }
         if let Some(l) = &self.source_dir {
