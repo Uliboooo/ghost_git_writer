@@ -2,8 +2,8 @@ use std::fmt::Display;
 
 use derive_getters::Getters;
 use serde::{Deserialize, Serialize};
-use url::Url;
 use std::collections::HashMap;
+use url::Url;
 
 #[derive(Debug, PartialEq)]
 pub enum Error {
@@ -100,13 +100,13 @@ impl Model {
     }
 }
 
-fn parse_port<T: AsRef<str>>(url: T) -> Result<(String, u16), Error>{
-        let parsed_url = Url::parse(url.as_ref())?;
-        let port = parsed_url.port().ok_or(Error::NotFoundPort)?;
-        let sh = parsed_url.scheme();
-        let host = parsed_url.host_str().ok_or(Error::NotFoundHost)?;
-        let url = format!("{sh}://{host}{}", parsed_url.path());
-        Ok((url, port))
+fn parse_port<T: AsRef<str>>(url: T) -> Result<(String, u16), Error> {
+    let parsed_url = Url::parse(url.as_ref())?;
+    let port = parsed_url.port().ok_or(Error::NotFoundPort)?;
+    let sh = parsed_url.scheme();
+    let host = parsed_url.host_str().ok_or(Error::NotFoundHost)?;
+    let url = format!("{sh}://{host}{}", parsed_url.path());
+    Ok((url, port))
 }
 
 #[derive(Debug, Getters, Serialize, Deserialize, Clone)]
@@ -128,7 +128,7 @@ mod tests {
 
     use easy_storage::Storeable;
 
-    use crate::config::{self, parse_port, Error, Model};
+    use crate::config::{self, Error, Model, parse_port};
 
     #[test]
     fn save_config() {
@@ -155,12 +155,21 @@ mod tests {
 
     #[test]
     fn parsed_url_test() {
-        let test_urls = 
-            [("http://localhost:11434", Ok(("http://localhost/".to_string(), 11434))),
-            ("http://foo.com:11434/bar", Ok(("http://foo.com/bar".to_string(), 11434))),
+        let test_urls = [
+            (
+                "http://localhost:11434",
+                Ok(("http://localhost/".to_string(), 11434)),
+            ),
+            (
+                "http://foo.com:11434/bar",
+                Ok(("http://foo.com/bar".to_string(), 11434)),
+            ),
             ("foo.com:11434/bar", Err(Error::NotFoundPort)),
-            ("foo.com/bar", Err(Error::Url(url::ParseError::RelativeUrlWithoutBase)))
-            ];
+            (
+                "foo.com/bar",
+                Err(Error::Url(url::ParseError::RelativeUrlWithoutBase)),
+            ),
+        ];
 
         for u in test_urls {
             let parsed = parse_port(u.0);

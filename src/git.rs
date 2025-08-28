@@ -21,11 +21,38 @@ impl From<git2::Error> for Error {
     }
 }
 
-pub fn get_diff<P: AsRef<Path>>(path: P) -> Result<String, Error> {
+pub fn get_diff<T: AsRef<str>, P: AsRef<Path>>(
+    points: (Option<T>, Option<T>),
+    path: P,
+) -> Result<String, Error> {
     let repo = Repository::open(path)?;
-    let head_commit = repo.head()?.peel_to_commit()?;
-    let head_tree = head_commit.tree()?;
-    let diff = repo.diff_tree_to_workdir(Some(&head_tree), Some(&mut DiffOptions::new()))?;
+
+    let points = (
+        points.0.map(|f| f.as_ref().to_string()),
+        points.1.map(|f| f.as_ref().to_string()),
+    );
+
+    let diff = match points {
+        (None, None) => repo.diff_index_to_workdir(None, Some(&mut DiffOptions::new())),
+        (None, Some(c2)) => {
+            let com1 = repo.find_commit(repo.revparse_single(c2.as_str())?.id())?;
+            let tree = com1.tree()?;
+            repo.diff_tree_to_workdir(Some(&tree), Some(&mut DiffOptions::new()))
+        }
+        (Some(c1), None) => {
+            let com1 = repo.find_commit(repo.revparse_single(c1.as_str())?.id())?;
+            let tree = com1.tree()?;
+            repo.diff_tree_to_workdir(Some(&tree), Some(&mut DiffOptions::new()))
+        }
+        (Some(c1), Some(c2)) => {
+            let com1 = repo.find_commit(repo.revparse_single(c1.as_str())?.id())?;
+            let com2 = repo.find_commit(repo.revparse_single(c2.as_str())?.id())?;
+
+            let tree1 = com1.tree()?;
+            let tree2 = com2.tree()?;
+            repo.diff_tree_to_tree(Some(&tree1), Some(&tree2), Some(&mut DiffOptions::new()))
+        }
+    }?;
 
     let mut pa = String::new();
     diff.print(git2::DiffFormat::Patch, |_, _, line| {
