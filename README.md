@@ -29,7 +29,20 @@ ggw <COMMAND> [Options]
   - `--oneline`: output only llm's return for cli pipes
 - Options for `commit`
   - `--auto-commit`: allow auto git commit by generated message
+  - `-D --diff <DIFF_COMMIT>`: specify commit hash or tag or git symbolic ref(e.g. 'HEAD')
 - Options for `readme`
   - `-s --source <source file list>`: source files path. A list of file paths separated by ','.
   - `-d --directory <source dir>`: souce file folder
   - `--merge-readme`: allow merge to existing README.md
+- Options for `sumdiff`
+  - `-D --diff <DIFF_COMMIT>`: specify commit hash or tag or git symbolic ref(e.g. 'HEAD')
+
+## Examples
+
+```shell
+# give `git diff` to command
+ggw commit -m gemini/gemini-2.0-flash
+
+# gice `git diff 76fd1d0` to command
+ggw sumdiff -D 76fd1d0 -m gemini/gemini-2.5-pro
+```
