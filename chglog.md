@@ -1,5 +1,59 @@
 # change log
 
+## 0.14.1(Aug 29) (written by gemini 2.5 pro)
+
+### Key Modifications
+
+The most significant change is the introduction of **multi-language support**. A new global command-line option, `-l` or `--lang`, has been added to allow users to specify the output language for LLM-generated content. This feature required extensive refactoring across the application to pass the language parameter to all LLM prompt generation functions.
+
+Accompanying this feature is a major codebase refactoring:
+*   The `main` function is now `async`.
+*   Modules for generating commits, READMEs, and summaries have been restructured.
+*   The LLM calling logic has been centralized and improved to be more modular.
+*   Configuration handling was updated to support more advanced options, like custom base URLs for Ollama.
+*   The command-line interface (CLI) helpers were improved, replacing a manual spinner with the `indicatif` crate.
+
+### Added
+
+*   **`.github/workflows/rust.yml`**: A `cargo check` step was added to the CI pipeline for faster error checking.
+*   **`src/cli_helper.rs`**: A new `Spinner` struct (using the `indicatif` crate) and a `Printer` struct (for formatted box output) were added.
+*   **`Cargo.toml`**: Dependencies for `indicatif`, `unicode-width`, and `url` were added to support the new UI and functionality.
+*   **`src/main.rs`**:
+    *   A global `-l, --lang` CLI option was added to the `RootOptions` struct.
+    *   Logic to handle the new `lang` parameter and pass it to LLM functions.
+*   **`.gitignore`**: The `src_old/` directory was added to the ignore list.
+
+### Removed
+
+Multiple files were deleted as part of a major code reorganization and cleanup. The functionality from these files was moved into new, refactored modules.
+
+*   **Source Files Deleted:**
+    *   `src/cmt_msg.rs`
+    *   `src/custom_prompt.rs`
+    *   `src/read_codes.rs`
+    *   `src/readme.rs`
+    *   `src/sum.rs`
+    *   `src/storage.rs` (Functionality replaced by the `easy_storage` crate).
+*   **Project Files Deleted:**
+    *   `a.diff`: A temporary diff file.
+    *   `release/*.zip`: Old binary release artifacts.
+    *   `resource/wwg_demo_0_2_1.gif`: An old demo GIF.
+    *   `test_config.json`, `test_diff.txt`: Old test configuration and data files.
+    *   `ulib_owl_release/`: Directory containing old, specific build scripts.
+*   **Dependencies Removed:**
+    *   The `dialoguer` dependency was removed from `Cargo.toml`.
+
+### Modified
+
+*   **`Cargo.toml` & `Cargo.lock`**: Project version was bumped to `0.14.1`. Dependency versions were updated, with many now using wildcard versions (e.g., `4.5.*`).
+*   **`README.md`**: Significantly rewritten to simplify usage instructions, remove outdated information, and document the new `--lang` option.
+*   **`src/config.rs`**: Configuration structs were refactored. The `Model` struct now includes a `base_url` field. The logic for resolving models from aliases or defaults has been updated.
+*   **`src/get_input.rs`**: Functions now return `Result` instead of panicking on I/O errors, improving robustness.
+*   **`src/git.rs`**: The `get_diff` function was enhanced to allow generating a diff between specific commit points, not just against the working directory.
+*   **`src/llm.rs`**: Heavily refactored. LLM calls are now managed through a new `LlmReqInfo` struct and a `Provider` enum, making the code more modular and extensible. Spinner logic is now integrated here.
+*   **`src/main.rs`**: This file saw the most changes, orchestrating the new multi-language feature and reflecting the overall code restructuring. Error handling was also completely revamped.
+*   **`auto_release.bash`**: The script was modified to clean the `release` directory before creating new zip files.
+
 ## 0.9.1(Aug 15)
 
 - change priority of config path,
@@ -20,20 +74,6 @@
 ## 0.6.0
 
 - feat: multi lang support
-
-```bash
-<<<commit mode>>>
-
-read git diff...
-creating commit message...
-japanese
-
-⠹created msg:feat: 言語オプションを追加し、LLM呼び出し時に言語を指定できるようにした
-
-do you edit msg?(y/n)n
-
-continue?(y/n)>n
-```
 
 ## 0.5.0
 
