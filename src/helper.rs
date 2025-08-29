@@ -1,27 +1,25 @@
 use std::{
-    fmt::Display,
-    fs,
-    path::{Path, PathBuf},
+    fs, io, path::{Path, PathBuf}
 };
 
-#[derive(Debug)]
-pub enum Error {
-    Io(std::io::Error),
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Error::Io(e) => write!(f, "io error: {}", e),
-        }
-    }
-}
-
-impl From<std::io::Error> for Error {
-    fn from(value: std::io::Error) -> Self {
-        Self::Io(value)
-    }
-}
+// #[derive(Debug)]
+// pub enum Error {
+//     Io(std::io::Error),
+// }
+//
+// impl Display for Error {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         match self {
+//             Error::Io(e) => write!(f, "io error: {}", e),
+//         }
+//     }
+// }
+//
+// impl From<std::io::Error> for Error {
+//     fn from(value: std::io::Error) -> Self {
+//         Self::Io(value)
+//     }
+// }
 
 pub fn init_lang<T: AsRef<str>>(lang: Option<T>) -> String {
     lang.map(|f| f.as_ref().to_string())
@@ -37,7 +35,7 @@ pub fn init_extra<T: AsRef<str>>(extra: Option<T>) -> String {
     )
 }
 
-pub fn load_codebase<P: AsRef<Path>>(path_list: &Vec<P>) -> Result<String, Error> {
+pub fn load_codebase<P: AsRef<Path>>(path_list: &Vec<P>) -> Result<String, io::Error> {
     let mut file_contes = Vec::new();
 
     for f in path_list {

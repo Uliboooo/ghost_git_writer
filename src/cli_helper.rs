@@ -2,23 +2,23 @@ use indicatif::{ProgressBar, ProgressStyle};
 use std::{fmt::Display, time::Duration};
 use unicode_width::UnicodeWidthChar;
 
-pub enum Error {
-    Io(std::io::Error),
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Error::Io(e) => write!(f, "io error: {}", e),
-        }
-    }
-}
-
-impl From<std::io::Error> for Error {
-    fn from(value: std::io::Error) -> Self {
-        Self::Io(value)
-    }
-}
+// pub enum Error {
+//     Io(std::io::Error),
+// }
+//
+// impl Display for Error {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         match self {
+//             Error::Io(e) => write!(f, "io error: {}", e),
+//         }
+//     }
+// }
+//
+// impl From<std::io::Error> for Error {
+//     fn from(value: std::io::Error) -> Self {
+//         Self::Io(value)
+//     }
+// }
 
 pub struct Spinner {
     pb: ProgressBar,

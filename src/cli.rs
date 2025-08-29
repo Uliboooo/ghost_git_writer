@@ -5,8 +5,6 @@ use std::{fmt::Display, fs, path::PathBuf};
 
 #[derive(Debug)]
 pub enum Error {
-    // InvalidFormatBaseUrl,
-    // InvalidPortAsBaseUrl,
     Io(std::io::Error),
     DoesNotExistSource,
     NotFoundSrc,

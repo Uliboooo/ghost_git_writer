@@ -25,7 +25,7 @@ else
 fi
 
 # zip
-mkdir -p ./release
+rm -r ./release && mkdir -p ./release
 
 if zip -j ./release/ggw_${ver}_arm_mac.zip ./target/release/ggw; then
     success_zips=$((success_zips + 1))
@@ -54,4 +54,3 @@ fi
 [ "$success_zips" -ge 1 ] && echo "✅ success arm mac zip"
 [ "$success_zips" -ge 2 ] && echo "✅ success windows zip"
 [ "$success_zips" -ge 3 ] && echo "✅ success linux zip"
-

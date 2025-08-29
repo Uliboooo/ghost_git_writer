@@ -1,25 +1,25 @@
-use std::fmt::Display;
+// use std::fmt::Display;
 
 use crate::llm;
 
-#[derive(Debug)]
-pub enum Error {
-    Llm(llm::Error),
-}
+// #[derive(Debug)]
+// pub enum Error {
+//     Llm(llm::Error),
+// }
 
-impl Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Error::Llm(e) => write!(f, "llm error: {}", e),
-        }
-    }
-}
-
-impl From<llm::Error> for Error {
-    fn from(value: llm::Error) -> Self {
-        Self::Llm(value)
-    }
-}
+// impl Display for Error {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         match self {
+//             Error::Llm(e) => write!(f, "llm error: {}", e),
+//         }
+//     }
+// }
+//
+// impl From<llm::Error> for Error {
+//     fn from(value: llm::Error) -> Self {
+//         Self::Llm(value)
+//     }
+// }
 
 const GEN_MSG_PMT: &str = "You are an assistant that writes Git commit messages.\
 When code changes include modifications to documentation files (e.g., README.md, docs/), ignore those changes and generate the commit message based solely on source code changes.\
@@ -32,7 +32,7 @@ pub async fn gen_commit_msg<T: AsRef<str>>(
     model: llm::LlmReqInfo,
     lang: Option<&T>,
     extra: Option<&T>,
-) -> Result<String, Error> {
+) -> Result<String, llm::Error> {
     let diff = diff.as_ref();
     let lang = lang
         .map(|f| f.as_ref().to_string())
@@ -44,5 +44,5 @@ pub async fn gen_commit_msg<T: AsRef<str>>(
 
     let prompt = format!("Please in {lang}.\n{GEN_MSG_PMT}{diff}.\n{extra}");
 
-    Ok(llm::call_llm(model, prompt).await?)
+    llm::call_llm(model, prompt).await
 }
