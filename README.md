@@ -10,6 +10,17 @@
 cargo install ghost_git_writer
 ```
 
+### set api key in enviroment variables
+
+- Gemini
+  - `GGW_GEMINI_API`
+- Anthropic
+  - `GGW_ANTHROPIC_API`
+- OpenAI
+  - `GGW_OPENAI_API`
+- Deepseek
+  - `GGW_DEEPSEEK_API`
+
 ## usage
 
 ```zsh
