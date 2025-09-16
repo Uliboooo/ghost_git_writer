@@ -84,7 +84,6 @@ pub fn git_commit<P: AsRef<Path>, M: AsRef<str>, T: AsRef<str>>(
         .and_then(|h| h.resolve().ok())
         .and_then(|r| r.peel_to_commit().ok());
 
-            // Error::PortIsNotNumber => write!(f, "failed parse port to number"),
     let sig = Signature::now(name.as_ref(), email.as_ref())?;
 
     let _commit_id = if let Some(pa) = parent_commit {
@@ -104,4 +103,31 @@ pub fn get_user_email() -> Result<(String, String), git2::Error> {
         config.get_string("user.name")?,
         config.get_string("user.email")?,
     ))
+}
+
+pub fn get_git_status<T: AsRef<Path>>(path: T) -> Result<String, git2::Error> {
+    let repo = Repository::open(path)?;
+
+    let st = repo.statuses(Some(&mut git2::StatusOptions::default()))?;
+
+    Ok(st
+        .into_iter()
+        .map(|f| {
+            let s = f.status();
+            let p = f.path().unwrap_or("???").to_string();
+            format!("{s:?}: {p}\n")
+        })
+        .collect::<String>())
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::git::get_git_status;
+
+    #[test]
+    fn sts_test() {
+        let c = std::env::current_dir().unwrap();
+        let res = get_git_status(c).unwrap();
+        println!("{res}");
+    }
 }
