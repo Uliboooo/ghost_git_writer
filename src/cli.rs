@@ -118,6 +118,12 @@ pub enum Commands {
 
     #[command(name = "sumdiff", about = "summarize changes by git diff")]
     SumDiff(SumDiff),
+
+    #[command(
+        name = "which-sem",
+        about = "in Sem Ver, Output which field should be incremented."
+    )]
+    WhichSem(WhichSem),
 }
 
 impl RootOption for Commands {
@@ -126,6 +132,7 @@ impl RootOption for Commands {
             Commands::Commit(commit) => commit.get_root_options(),
             Commands::Readme(readme) => readme.get_root_options(),
             Commands::SumDiff(diff_sum) => diff_sum.get_root_options(),
+            Commands::WhichSem(which_sem) => which_sem.get_root_options(),
         }
     }
 }
@@ -238,6 +245,21 @@ struct Config {
     show: bool,
 }
 
+#[derive(Debug, clap::Args, Clone)]
+pub struct WhichSem {
+    #[command(flatten)]
+    root_options: RootOptions,
+
+    #[command(flatten)]
+    diff_opts: DiffOptions,
+}
+
+impl DiffOption for WhichSem {
+    fn get_diff_options(&self) -> DiffOptions {
+        self.diff_opts.clone()
+    }
+}
+
 impl RootOption for Commit {
     fn get_root_options(&self) -> RootOptions {
         self.root_options.clone()
@@ -256,3 +278,8 @@ impl RootOption for SumDiff {
     }
 }
 
+impl RootOption for WhichSem {
+    fn get_root_options(&self) -> RootOptions {
+        self.root_options.clone()
+    }
+}

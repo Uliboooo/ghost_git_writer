@@ -25,15 +25,17 @@ const GEN_MSG_PMT: &str = "You are an assistant that writes Git commit messages.
 When code changes include modifications to documentation files (e.g., README.md, docs/), ignore those changes and generate the commit message based solely on source code changes.\
 Given a description of code changes, output only a single-line commit message in Conventional Commits format (e.g., \"feat:\", \"fix:\", \"docs:\", etc.).\
 Do not include any extra text, code blocks, or formatting. Only output the commit message.\
-Diff Changes:";
+git status info and diff changes:";
 
 pub async fn gen_commit_msg<T: AsRef<str>>(
     diff: T,
+    status: T,
     model: llm::LlmReqInfo,
     lang: Option<&T>,
     extra: Option<&T>,
 ) -> Result<String, llm::Error> {
     let diff = diff.as_ref();
+    let st = status.as_ref();
     let lang = lang
         .map(|f| f.as_ref().to_string())
         .unwrap_or("english".to_string());
@@ -42,7 +44,7 @@ pub async fn gen_commit_msg<T: AsRef<str>>(
         extra.map_or("".to_string(), |f| f.as_ref().to_string())
     );
 
-    let prompt = format!("Please in {lang}.\n{GEN_MSG_PMT}{diff}.\n{extra}");
+    let prompt = format!("Please in {lang}.\n{GEN_MSG_PMT}\nstauts: {st}\ndiff:{diff}.\n{extra}");
 
     llm::call_llm(model, prompt).await
 }

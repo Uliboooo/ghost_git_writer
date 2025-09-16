@@ -8,11 +8,13 @@ mod git;
 mod helper;
 mod llm;
 mod readme_gen;
+mod which_sem;
 
 use crate::{
     cli::{DiffOption, RootOption},
     config::Config,
     get_input::yes_no,
+    git::get_git_status,
     helper::{find_readme, get_now},
 };
 use clap::Parser;
@@ -248,6 +250,8 @@ async fn main() -> Result<(), Error> {
     let lang = root_options.lang().as_ref();
     let extra = root_options.extra().as_ref();
 
+    let git_status = get_git_status(&work_path)?;
+
     match &cli.subcommand {
         cli::Commands::Commit(commit) => {
             let diff = {
@@ -255,8 +259,7 @@ async fn main() -> Result<(), Error> {
                 git::get_diff(diff_opt, &work_path)
             }?;
 
-
-            let msg = commit_gen::gen_commit_msg(diff, model_info, lang, extra).await?;
+            let msg = commit_gen::gen_commit_msg(diff, git_status, model_info, lang, extra).await?;
             if *commit.get_root_options().oneline() {
                 println!("{msg}");
                 Ok(())
@@ -315,12 +318,34 @@ async fn main() -> Result<(), Error> {
                 git::get_diff(diff_s, &work_path)
             }?;
             let res =
-                diff_sum_gen::sum_diff(diff, model_info, lang.cloned(), extra.cloned()).await?;
+                diff_sum_gen::sum_diff(diff, git_status, model_info, lang.cloned(), extra.cloned())
+                    .await?;
             if *_diff_sum.get_root_options().oneline() {
                 println!("{res}");
                 Ok(())
             } else {
                 println!("diff summarize:\n{res}");
+                Ok(())
+            }
+        }
+        cli::Commands::WhichSem(which) => {
+            let diff = {
+                let diff_s = which.resolve_diff_commit();
+                git::get_diff(diff_s, &work_path)
+            }?;
+            let res =
+                which_sem::whichi_sem(diff, git_status, model_info, lang.cloned(), extra.cloned())
+                    .await?;
+
+            if *which.get_root_options().oneline() {
+                println!("{}", res.0);
+                Ok(())
+            } else {
+                let s = cli_helper::Printer::from(res.0.trim());
+                println!(
+                    "shoud increase at \n{s}\nreasons:\n{}",
+                    res.1.unwrap_or(String::new()).trim()
+                );
                 Ok(())
             }
         }
