@@ -27,7 +27,7 @@ cargo install ghost_git_writer
 ggw <COMMAND> [Options]
 ```
 
-- Commands
+- Sub Commands
   - `commit`: generate a git commit message from git diff by llm
   - `readme`: generate a README from codebase.
   - `sumdiff`: generate a summry of changes from git diff

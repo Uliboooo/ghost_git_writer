@@ -8,6 +8,7 @@ mod git;
 mod helper;
 mod llm;
 mod readme_gen;
+mod which_sem;
 
 use crate::{
     cli::{DiffOption, RootOption},
@@ -324,6 +325,29 @@ async fn main() -> Result<(), Error> {
                 Ok(())
             } else {
                 println!("diff summarize:\n{res}");
+                Ok(())
+            }
+        }
+        cli::Commands::WhichSem(which) => {
+            let diff = {
+                let diff_s = which.resolve_diff_commit();
+                git::get_diff(diff_s, &work_path)
+            }?;
+            let res =
+                which_sem::whichi_sem(diff, git_status, model_info, lang.cloned(), extra.cloned())
+                    .await?;
+
+            println!("{:?}", res.1);
+
+            if *which.get_root_options().oneline() {
+                println!("{}", res.0);
+                Ok(())
+            } else {
+                let s = cli_helper::Printer::from(res.0.trim());
+                println!(
+                    "shoud increase at \n{s}\nreasons:\n{}",
+                    res.1.unwrap_or(String::new()).trim()
+                );
                 Ok(())
             }
         }
