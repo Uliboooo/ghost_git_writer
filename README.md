@@ -31,6 +31,7 @@ ggw <COMMAND> [Options]
   - `commit`: generate a git commit message from git diff by llm
   - `readme`: generate a README from codebase.
   - `sumdiff`: generate a summry of changes from git diff
+  - `which-sem`: in Sem Ver, Output which field should be incremented.
 - Global Options(mainly)
   - `-m --model`: model sepcific tag. there are tow pattern to specific model.
   - `-p --path`: specific woek path. if it's empty, set current dir path.
@@ -46,6 +47,8 @@ ggw <COMMAND> [Options]
   - `-d --directory <source dir>`: souce file folder
   - `--merge-readme`: allow merge to existing README.md
 - Options for `sumdiff`
+  - `-D --diff <DIFF_COMMIT>`: specify commit hash or tag or git symbolic ref(e.g. 'HEAD')
+- Options for `which-sem`
   - `-D --diff <DIFF_COMMIT>`: specify commit hash or tag or git symbolic ref(e.g. 'HEAD')
 
 ## Examples

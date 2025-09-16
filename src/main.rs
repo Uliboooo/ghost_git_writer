@@ -337,8 +337,6 @@ async fn main() -> Result<(), Error> {
                 which_sem::whichi_sem(diff, git_status, model_info, lang.cloned(), extra.cloned())
                     .await?;
 
-            println!("{:?}", res.1);
-
             if *which.get_root_options().oneline() {
                 println!("{}", res.0);
                 Ok(())
