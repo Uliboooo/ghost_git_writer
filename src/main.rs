@@ -23,7 +23,7 @@ use std::{
     env,
     fmt::Display,
     fs::OpenOptions,
-    io::{Read, Write},
+    io::{stdout, Read, Write},
     path::{Path, PathBuf},
 };
 
@@ -262,6 +262,7 @@ async fn main() -> Result<(), Error> {
             let diff = if *root_options.stdin() {
                 let mut input = String::new();
                 std::io::stdin().read_to_string(&mut input)?;
+                stdout().flush()?;
                 input
             } else {
                 let diff_opt = commit.resolve_diff_commit();
