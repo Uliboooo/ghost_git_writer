@@ -261,7 +261,7 @@ async fn main() -> Result<(), Error> {
         cli::Commands::Commit(commit) => {
             let diff = if *root_options.stdin() {
                 let mut input = String::new();
-                std::io::stdin().read_to_string(&mut input)?;
+                std::io::stdin().lock().read_to_string(&mut input)?;
                 stdout().flush()?;
                 input
             } else {
