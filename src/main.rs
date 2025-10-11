@@ -259,7 +259,8 @@ async fn main() -> Result<(), Error> {
 
     match &cli.subcommand {
         cli::Commands::Commit(commit) => {
-            let diff = if *root_options.stdin() {
+            //                     👇 is from pipe.
+            let diff = if !atty::is(atty::Stream::Stdin) {
                 let mut input = String::new();
                 std::io::stdin().lock().read_to_string(&mut input)?;
                 stdout().flush()?;
