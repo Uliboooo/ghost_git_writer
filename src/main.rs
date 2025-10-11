@@ -13,7 +13,7 @@ mod which_sem;
 use crate::{
     cli::{DiffOption, RootOption},
     config::Config,
-    get_input::yes_no,
+    get_input::{get_input, yes_no},
     git::get_git_status,
     helper::{find_readme, get_now},
 };
@@ -23,7 +23,7 @@ use std::{
     env,
     fmt::Display,
     fs::OpenOptions,
-    io::Write,
+    io::{Read, Write},
     path::{Path, PathBuf},
 };
 
@@ -251,13 +251,22 @@ async fn main() -> Result<(), Error> {
     let extra = root_options.extra().as_ref();
 
     let git_status = get_git_status(&work_path)?;
+    //
+    // let diff = if root_options.stdin() {
+    //     todo!()
+    // } else {
+    // }
 
     match &cli.subcommand {
         cli::Commands::Commit(commit) => {
-            let diff = {
+            let diff = if *root_options.stdin() {
+                let mut input = String::new();
+                std::io::stdin().read_to_string(&mut input)?;
+                input
+            } else {
                 let diff_opt = commit.resolve_diff_commit();
-                git::get_diff(diff_opt, &work_path)
-            }?;
+                git::get_diff(diff_opt, &work_path)?
+            };
 
             let msg = commit_gen::gen_commit_msg(diff, git_status, model_info, lang, extra).await?;
             if *commit.get_root_options().oneline() {
@@ -312,15 +321,20 @@ async fn main() -> Result<(), Error> {
                 Ok(f.write_all(readme_content.as_bytes())?)
             }
         }
-        cli::Commands::SumDiff(_diff_sum) => {
-            let diff = {
-                let diff_s = _diff_sum.resolve_diff_commit();
-                git::get_diff(diff_s, &work_path)
-            }?;
+        cli::Commands::SumDiff(diff_sum) => {
+            let diff = if *root_options.stdin() {
+                let mut input = String::new();
+                std::io::stdin().read_to_string(&mut input)?;
+                input
+            } else {
+                let diff_s = diff_sum.resolve_diff_commit();
+                git::get_diff(diff_s, &work_path)?
+            };
+
             let res =
                 diff_sum_gen::sum_diff(diff, git_status, model_info, lang.cloned(), extra.cloned())
                     .await?;
-            if *_diff_sum.get_root_options().oneline() {
+            if *diff_sum.get_root_options().oneline() {
                 println!("{res}");
                 Ok(())
             } else {
@@ -329,10 +343,14 @@ async fn main() -> Result<(), Error> {
             }
         }
         cli::Commands::WhichSem(which) => {
-            let diff = {
+            let diff = if *root_options.stdin() {
+                let mut input = String::new();
+                std::io::stdin().read_to_string(&mut input)?;
+                input
+            } else {
                 let diff_s = which.resolve_diff_commit();
-                git::get_diff(diff_s, &work_path)
-            }?;
+                git::get_diff(diff_s, &work_path)?
+            };
             let res =
                 which_sem::whichi_sem(diff, git_status, model_info, lang.cloned(), extra.cloned())
                     .await?;
