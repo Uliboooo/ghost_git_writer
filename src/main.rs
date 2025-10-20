@@ -13,7 +13,7 @@ mod which_sem;
 use crate::{
     cli::{DiffOption, RootOption},
     config::Config,
-    get_input::{get_input, yes_no},
+    get_input::yes_no,
     git::get_git_status,
     helper::{find_readme, get_now},
 };
