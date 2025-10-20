@@ -23,7 +23,7 @@ use std::{
     env,
     fmt::Display,
     fs::{File, OpenOptions},
-    io::{stdout, BufRead, BufReader, Read, Write},
+    io::{BufRead, BufReader, Read, Write, stdout},
     path::{Path, PathBuf},
 };
 
@@ -276,6 +276,8 @@ async fn main() -> Result<(), Error> {
                 stdout().flush().unwrap();
                 let mut ans = String::new();
                 tty.read_line(&mut ans).unwrap();
+                print!("continue?(y/n)>");
+                std::io::stdout().flush().unwrap();
                 matches!(ans.trim(), "y" | "Y" | "Yes" | "yes")
             };
             if *commit.get_root_options().oneline() {
@@ -286,7 +288,7 @@ async fn main() -> Result<(), Error> {
                 println!("Generated msg:\n{fd_msg}");
 
                 if *commit.auto_commit() ||
-                    //yes_no("commit?(y/n)") 
+                    //yes_no("commit?(y/n)")
                     conti()
                 {
                     git::git_commit(&work_path, &msg, git_user.0, git_user.1)?;
