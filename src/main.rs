@@ -22,8 +22,8 @@ use easy_storage::Storeable;
 use std::{
     env,
     fmt::Display,
-    fs::OpenOptions,
-    io::{stdout, Read, Write},
+    fs::{File, OpenOptions},
+    io::{stdout, BufRead, BufReader, Read, Write},
     path::{Path, PathBuf},
 };
 
@@ -271,6 +271,13 @@ async fn main() -> Result<(), Error> {
             };
 
             let msg = commit_gen::gen_commit_msg(diff, git_status, model_info, lang, extra).await?;
+            let conti = || {
+                let mut tty = BufReader::new(File::open("/dev/tty").unwrap());
+                stdout().flush().unwrap();
+                let mut ans = String::new();
+                tty.read_line(&mut ans).unwrap();
+                matches!(ans.trim(), "y" | "Y" | "Yes" | "yes")
+            };
             if *commit.get_root_options().oneline() {
                 println!("{msg}");
                 Ok(())
@@ -278,7 +285,10 @@ async fn main() -> Result<(), Error> {
                 let fd_msg = cli_helper::Printer::from(&msg);
                 println!("Generated msg:\n{fd_msg}");
 
-                if *commit.auto_commit() || yes_no("commit?(y/n)") {
+                if *commit.auto_commit() ||
+                    //yes_no("commit?(y/n)") 
+                    conti()
+                {
                     git::git_commit(&work_path, &msg, git_user.0, git_user.1)?;
                     Ok(())
                 } else {

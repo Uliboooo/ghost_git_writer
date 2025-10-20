@@ -70,7 +70,7 @@ impl TryFrom<&str> for Provider {
             "ollama" => Ok(Self::Ollama),
             "openai" => Ok(Self::OpenAI),
             "gemini" => Ok(Self::Gemini),
-            "authropic" => Ok(Self::Anthropic),
+            "anthropic" => Ok(Self::Anthropic),
             "deepseek" => Ok(Self::DeepSeek),
             _ => Err(Error::NotSuppoeredProvider),
         }
