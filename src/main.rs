@@ -274,10 +274,13 @@ async fn main() -> Result<(), Error> {
             let conti = || {
                 let mut tty = BufReader::new(File::open("/dev/tty").unwrap());
                 stdout().flush().unwrap();
-                let mut ans = String::new();
-                tty.read_line(&mut ans).unwrap();
+                // let mut ans = String::new();
+                // tty.read_line(&mut ans).unwrap();
                 print!("continue?(y/n)>");
                 std::io::stdout().flush().unwrap();
+                let mut ans = String::new();
+                tty.read_line(&mut ans).unwrap();
+
                 matches!(ans.trim(), "y" | "Y" | "Yes" | "yes")
             };
             if *commit.get_root_options().oneline() {
