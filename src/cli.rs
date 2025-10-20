@@ -80,6 +80,9 @@ pub struct RootOptions {
 
     #[arg(long = "oneline", help = "show only llm's return for cli pipes")]
     oneline: bool,
+
+    #[arg(long = "stdin", help = "use stdin as diff content")]
+    stdin: bool,
 }
 
 pub trait DiffOption {

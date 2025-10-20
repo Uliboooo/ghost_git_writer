@@ -1,4 +1,5 @@
-use std::fmt::Display;
+use crate::cli_helper::Spinner;
+use crate::config;
 use derive_getters::Getters;
 use llm_api_rs::{
     self, LlmProvider,
@@ -6,8 +7,7 @@ use llm_api_rs::{
     providers::{Anthropic, DeepSeek, Gemini, OpenAI},
 };
 use ollama_rs::{Ollama, generation::completion::request::GenerationRequest};
-use crate::cli_helper::Spinner;
-use crate::config;
+use std::fmt::Display;
 
 #[derive(Debug)]
 pub enum Error {
@@ -70,7 +70,7 @@ impl TryFrom<&str> for Provider {
             "ollama" => Ok(Self::Ollama),
             "openai" => Ok(Self::OpenAI),
             "gemini" => Ok(Self::Gemini),
-            "authropic" => Ok(Self::Anthropic),
+            "anthropic" => Ok(Self::Anthropic),
             "deepseek" => Ok(Self::DeepSeek),
             _ => Err(Error::NotSuppoeredProvider),
         }

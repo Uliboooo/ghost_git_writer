@@ -1,5 +1,6 @@
 use std::{
-    fs, io, path::{Path, PathBuf}
+    fs, io,
+    path::{Path, PathBuf},
 };
 
 // #[derive(Debug)]
