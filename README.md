@@ -1,6 +1,6 @@
 # ghost writer - `ggw`
 
-[![image](https://github.com/Uliboooo/ghost_git_writer/README_resource/log-ggw.png)]
+[![image](https://github.com/Uliboooo/ghost_git_writer/blob/develop/README_resource/log-ggw.png)]
 
 [![made-with-Rust](https://img.shields.io/badge/Made%20with-Rust-1f425f.svg)](https://www.rust-lang.org/)
 
