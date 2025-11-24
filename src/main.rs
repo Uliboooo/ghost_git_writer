@@ -29,6 +29,7 @@ use std::{
 
 const ANTHROPIC_API: &str = "GGW_ANTHROPIC_API";
 const GEMINI_API: &str = "GGW_GEMINI_API";
+const GEMINI_API_FALL: &str = "GEMINI_API_KEY";
 const OPENAI_API: &str = "GGW_OPENAI_API";
 const DEEPSEEK: &str = "GGW_DEEPSEEK_API";
 
@@ -217,7 +218,13 @@ fn resolve_api_key(model: &config::Model) -> Result<Option<String>, Error> {
     Ok(match prov {
         llm::Provider::Ollama => None,
         llm::Provider::OpenAI => Some(env::var(OPENAI_API)),
-        llm::Provider::Gemini => Some(env::var(GEMINI_API)),
+        llm::Provider::Gemini => Some(match env::var(GEMINI_API) {
+            Ok(v) => Ok(v),
+            Err(_) => match env::var(GEMINI_API_FALL) {
+                Ok(vv) => Ok(vv),
+                Err(e) => Err(e),
+            },
+        }),
         llm::Provider::Anthropic => Some(env::var(ANTHROPIC_API)),
         llm::Provider::DeepSeek => Some(env::var(DEEPSEEK)),
     }
