@@ -19,6 +19,7 @@ cargo install ghost_git_writer
 
 - Gemini
   - `GGW_GEMINI_API`
+  - `GEMINI_API_KEY`
 - Anthropic
   - `GGW_ANTHROPIC_API`
 - OpenAI
