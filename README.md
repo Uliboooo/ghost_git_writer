@@ -33,6 +33,17 @@ cargo install ghost_git_writer
 ggw <COMMAND> [Options]
 ```
 
+### use other source as diff
+
+```zsh
+❯ gda --staged | ggw commit --stdin -m gemini/gemini-2.5-flash
+⠏ LLM call...finished.                                                                                               Generated msg:
+╭────────────────────────────────────────────────────────────╮
+│ feat: Set up Emacs with configuration migrated from Neovim │
+╰────────────────────────────────────────────────────────────╯
+continue?(y/n)>y
+```
+
 - Sub Commands
   - `commit`: generate a git commit message from git diff by llm
   - `readme`: generate a README from codebase.
