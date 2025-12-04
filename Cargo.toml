@@ -1,11 +1,12 @@
 [package]
 name = "ghost_git_writer"
 description = "write a git commit message, README or Diff Summary by LLM services."
-version = "0.18.0"
+version = "0.18.1"
 repository = "https://github.com/Uliboooo/ghost_git_writer"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 authors = ["Uliboooo uliboulibo@gmail.com"]
+homepage = "https://uliboooo.github.io/ghost_git_writer"
 
 [[bin]]
 name = "ggw"
