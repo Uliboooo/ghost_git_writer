@@ -7,6 +7,8 @@
 
 [![made-with-Rust](https://img.shields.io/badge/Made%20with-Rust-1f425f.svg)](https://www.rust-lang.org/)
 
+https://uliboooo.github.io/ghost_git_writer/
+
 **⚠️ beta ⚠️** and this doc is unstable to updating now...
 
 ## installing
