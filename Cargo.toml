@@ -23,7 +23,7 @@ panic = "abort"
 clap = { version = "4.5.*", features = ["derive"] }
 git2 = "0.20.*"
 ollama-rs = "0.3.*"
-tokio = { version = "1.47.*", features = ["rt", "rt-multi-thread"] }
+tokio = { version = "1.49.*", features = ["rt", "rt-multi-thread"] }
 llm-api-rs = "0.1.*"
 serde = { version = "1.0.*", features = ["derive"] }
 derive-getters = "0.5.*"
