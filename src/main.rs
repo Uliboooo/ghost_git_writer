@@ -283,7 +283,7 @@ async fn main() -> Result<(), Error> {
                 stdout().flush().unwrap();
                 // let mut ans = String::new();
                 // tty.read_line(&mut ans).unwrap();
-                print!("continue?(y/n)>");
+                print!("continue?(y/n)> ");
                 std::io::stdout().flush().unwrap();
                 let mut ans = String::new();
                 tty.read_line(&mut ans).unwrap();

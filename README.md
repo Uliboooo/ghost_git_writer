@@ -1,7 +1,7 @@
 # ghost writer - `ggw`
 
 <h1 align="center">
-	<img src="https://github.com/Uliboooo/ghost_git_writer/blob/develop/README_resource/log-ggw.png" width="100" alt="Icon"/><br/>
+	<img src="https://github.com/Uliboooo/ghost_git_writer/blob/develop/README_resource/icon.svg" width="100" alt="Icon"/><br/>
   Ghost git writer
 </h1>
 
@@ -75,6 +75,7 @@ continue?(y/n)>y
 ```shell
 # give `git diff` to command
 ggw commit -m gemini/gemini-2.0-flash
+ggw commit -m gemini/gemini-3-flash-preview
 
 # gice `git diff 76fd1d0` to command
 ggw sumdiff -D 76fd1d0 -m gemini/gemini-2.5-pro
