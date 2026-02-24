@@ -1,7 +1,7 @@
 # ghost writer - `ggw`
 
 <h1 align="center">
-	<img src="https://github.com/Uliboooo/ghost_git_writer/blob/develop/README_resource/log-ggw.png" width="100" alt="Icon"/><br/>
+	<img src="https://github.com/Uliboooo/ghost_git_writer/blob/develop/README_resource/icon.svg" width="100" alt="Icon"/><br/>
   Ghost git writer
 </h1>
 
