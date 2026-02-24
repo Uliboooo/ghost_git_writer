@@ -75,6 +75,7 @@ continue?(y/n)>y
 ```shell
 # give `git diff` to command
 ggw commit -m gemini/gemini-2.0-flash
+ggw commit -m gemini/gemini-3-flash-preview
 
 # gice `git diff 76fd1d0` to command
 ggw sumdiff -D 76fd1d0 -m gemini/gemini-2.5-pro
