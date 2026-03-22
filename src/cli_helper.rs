@@ -120,57 +120,74 @@ fn get_max_len<T: AsRef<str>>(strg: T) -> u32 {
     max
 }
 
-const SEM_VER_ITEMS: [&str; 3] = ["MAJOR", "MINOR", "PATCH"];
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum SemVerPart {
+    Major,
+    Minor,
+    Patch,
+}
+
+impl SemVerPart {
+    fn label(self) -> &'static str {
+        match self {
+            SemVerPart::Major => "MAJOR",
+            SemVerPart::Minor => "MINOR",
+            SemVerPart::Patch => "PATCH",
+        }
+    }
+}
+
+impl std::str::FromStr for SemVerPart {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.trim().to_lowercase().as_str() {
+            "major" => Ok(SemVerPart::Major),
+            "minor" => Ok(SemVerPart::Minor),
+            "patch" => Ok(SemVerPart::Patch),
+            other => Err(format!("unknown SemVer part: {other}")),
+        }
+    }
+}
 
 pub struct SemVerSelector {
-    selected: String,
+    selected: SemVerPart,
 }
 
 impl SemVerSelector {
-    pub fn new<T: AsRef<str>>(selected: T) -> Self {
-        Self {
-            selected: selected.as_ref().to_string(),
-        }
+    pub fn new(selected: SemVerPart) -> Self {
+        Self { selected }
     }
 }
 
 impl Display for SemVerSelector {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let selected_lower = self.selected.trim().to_lowercase();
-        let sel_idx = SEM_VER_ITEMS
-            .iter()
-            .position(|s| s.to_lowercase() == selected_lower)
-            .unwrap_or(1);
-
+        let parts = [SemVerPart::Major, SemVerPart::Minor, SemVerPart::Patch];
         let mut top = String::new();
         let mut mid = String::new();
         let mut bot = String::new();
 
-        for (i, item) in SEM_VER_ITEMS.iter().enumerate() {
-            let w = get_str_len(item);
+        for (i, &part) in parts.iter().enumerate() {
+            let label = part.label();
+            let w = get_str_len(label);
+            let is_sel = part == self.selected;
 
-            // Add column separator before this item (except for the first item).
-            // When neither adjacent item is selected, add an explicit │ separator.
-            // When one adjacent item is selected, the box wall already provides it.
-            if i > 0 {
-                let prev_is_sel = (i - 1) == sel_idx;
-                let curr_is_sel = i == sel_idx;
-                if !prev_is_sel && !curr_is_sel {
-                    top.push(' ');
-                    mid.push('│');
-                    bot.push(' ');
-                }
+            // Add a column separator before this item (except for the first).
+            // Skip when one of the adjacent items is selected — the box wall serves as the separator.
+            if i > 0 && !(parts[i - 1] == self.selected) && !is_sel {
+                top.push(' ');
+                mid.push('│');
+                bot.push(' ');
             }
 
-            if i == sel_idx {
+            if is_sel {
                 top.push_str(&format!("╭{}╮", mul_str(&"─", w + 2)));
-                mid.push_str(&format!("│ {} │", item));
+                mid.push_str(&format!("│ {label} │"));
                 bot.push_str(&format!("╰{}╯", mul_str(&"─", w + 2)));
             } else {
-                let spaces = mul_str(&" ", w + 2);
-                top.push_str(&spaces);
-                mid.push_str(&format!(" {} ", item));
-                bot.push_str(&spaces);
+                top.push_str(&mul_str(&" ", w + 2));
+                mid.push_str(&format!(" {label} "));
+                bot.push_str(&mul_str(&" ", w + 2));
             }
         }
 
@@ -180,7 +197,7 @@ impl Display for SemVerSelector {
 
 #[cfg(test)]
 mod tests {
-    use crate::cli_helper::{Printer, SemVerSelector, mul_str};
+    use crate::cli_helper::{Printer, SemVerPart, SemVerSelector, mul_str};
 
     #[test]
     fn str_mul_test() {
@@ -208,36 +225,29 @@ mod tests {
     }
 
     #[test]
+    fn sem_ver_part_from_str_test() {
+        assert_eq!("major".parse::<SemVerPart>(), Ok(SemVerPart::Major));
+        assert_eq!("Minor".parse::<SemVerPart>(), Ok(SemVerPart::Minor));
+        assert_eq!("PATCH".parse::<SemVerPart>(), Ok(SemVerPart::Patch));
+        assert!("unknown".parse::<SemVerPart>().is_err());
+    }
+
+    #[test]
     fn sem_ver_selector_test() {
         // MAJOR selected (first item)
         assert_eq!(
-            format!("{}", SemVerSelector::new("MAJOR")),
-            "╭───────╮               \n│ MAJOR │ MINOR │ PATCH \n╰───────╯               "
-        );
-        // Case-insensitive match
-        assert_eq!(
-            format!("{}", SemVerSelector::new("major")),
+            format!("{}", SemVerSelector::new(SemVerPart::Major)),
             "╭───────╮               \n│ MAJOR │ MINOR │ PATCH \n╰───────╯               "
         );
         // MINOR selected (middle item)
         assert_eq!(
-            format!("{}", SemVerSelector::new("MINOR")),
-            "       ╭───────╮       \n MAJOR │ MINOR │ PATCH \n       ╰───────╯       "
-        );
-        // Mixed-case match (as LLM might return "Minor")
-        assert_eq!(
-            format!("{}", SemVerSelector::new("Minor")),
+            format!("{}", SemVerSelector::new(SemVerPart::Minor)),
             "       ╭───────╮       \n MAJOR │ MINOR │ PATCH \n       ╰───────╯       "
         );
         // PATCH selected (last item)
         assert_eq!(
-            format!("{}", SemVerSelector::new("PATCH")),
+            format!("{}", SemVerSelector::new(SemVerPart::Patch)),
             "               ╭───────╮\n MAJOR │ MINOR │ PATCH │\n               ╰───────╯"
-        );
-        // Unknown value defaults to MINOR
-        assert_eq!(
-            format!("{}", SemVerSelector::new("unknown")),
-            "       ╭───────╮       \n MAJOR │ MINOR │ PATCH \n       ╰───────╯       "
         );
     }
 }

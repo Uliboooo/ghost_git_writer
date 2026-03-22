@@ -51,6 +51,7 @@ enum Error {
     NotFoundDefaultModel,
     NotFoundWorkFolder,
     Cancel,
+    InvalidSemVer(String),
 }
 
 impl From<std::io::Error> for Error {
@@ -126,6 +127,7 @@ impl Display for Error {
             Error::NotFoundLlmField => write!(f, "not found llm field in config file"),
             Error::NotFoundSelectedModel => write!(f, "not found selected model in config"),
             Error::NotFoundDefaultModel => write!(f, "not found default model in config"),
+            Error::InvalidSemVer(s) => write!(f, "invalid SemVer part from LLM response: {s}"),
         }
     }
 }
@@ -383,7 +385,8 @@ async fn main() -> Result<(), Error> {
                 println!("{}", res.0);
                 Ok(())
             } else {
-                let s = cli_helper::SemVerSelector::new(res.0.trim());
+                let part = res.0.trim().parse::<cli_helper::SemVerPart>().map_err(Error::InvalidSemVer)?;
+                let s = cli_helper::SemVerSelector::new(part);
                 println!(
                     "should increase at\n{s}\nreasons:\n{}",
                     res.1.unwrap_or(String::new()).trim()
