@@ -120,9 +120,67 @@ fn get_max_len<T: AsRef<str>>(strg: T) -> u32 {
     max
 }
 
+const SEM_VER_ITEMS: [&str; 3] = ["MAJOR", "MINOR", "PATCH"];
+
+pub struct SemVerSelector {
+    selected: String,
+}
+
+impl SemVerSelector {
+    pub fn new<T: AsRef<str>>(selected: T) -> Self {
+        Self {
+            selected: selected.as_ref().to_string(),
+        }
+    }
+}
+
+impl Display for SemVerSelector {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let selected_lower = self.selected.trim().to_lowercase();
+        let sel_idx = SEM_VER_ITEMS
+            .iter()
+            .position(|s| s.to_lowercase() == selected_lower)
+            .unwrap_or(1);
+
+        let mut top = String::new();
+        let mut mid = String::new();
+        let mut bot = String::new();
+
+        for (i, item) in SEM_VER_ITEMS.iter().enumerate() {
+            let w = get_str_len(item);
+
+            // Add column separator before this item (except for the first item).
+            // When neither adjacent item is selected, add an explicit │ separator.
+            // When one adjacent item is selected, the box wall already provides it.
+            if i > 0 {
+                let prev_is_sel = (i - 1) == sel_idx;
+                let curr_is_sel = i == sel_idx;
+                if !prev_is_sel && !curr_is_sel {
+                    top.push(' ');
+                    mid.push('│');
+                    bot.push(' ');
+                }
+            }
+
+            if i == sel_idx {
+                top.push_str(&format!("╭{}╮", mul_str(&"─", w + 2)));
+                mid.push_str(&format!("│ {} │", item));
+                bot.push_str(&format!("╰{}╯", mul_str(&"─", w + 2)));
+            } else {
+                let spaces = mul_str(&" ", w + 2);
+                top.push_str(&spaces);
+                mid.push_str(&format!(" {} ", item));
+                bot.push_str(&spaces);
+            }
+        }
+
+        write!(f, "{top}\n{mid}\n{bot}")
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::cli_helper::{Printer, mul_str};
+    use crate::cli_helper::{Printer, SemVerSelector, mul_str};
 
     #[test]
     fn str_mul_test() {
@@ -147,5 +205,39 @@ mod tests {
         for r in test_str {
             assert_eq!(format!("{}", Printer::new(r.0)), r.1.to_string());
         }
+    }
+
+    #[test]
+    fn sem_ver_selector_test() {
+        // MAJOR selected (first item)
+        assert_eq!(
+            format!("{}", SemVerSelector::new("MAJOR")),
+            "╭───────╮               \n│ MAJOR │ MINOR │ PATCH \n╰───────╯               "
+        );
+        // Case-insensitive match
+        assert_eq!(
+            format!("{}", SemVerSelector::new("major")),
+            "╭───────╮               \n│ MAJOR │ MINOR │ PATCH \n╰───────╯               "
+        );
+        // MINOR selected (middle item)
+        assert_eq!(
+            format!("{}", SemVerSelector::new("MINOR")),
+            "       ╭───────╮       \n MAJOR │ MINOR │ PATCH \n       ╰───────╯       "
+        );
+        // Mixed-case match (as LLM might return "Minor")
+        assert_eq!(
+            format!("{}", SemVerSelector::new("Minor")),
+            "       ╭───────╮       \n MAJOR │ MINOR │ PATCH \n       ╰───────╯       "
+        );
+        // PATCH selected (last item)
+        assert_eq!(
+            format!("{}", SemVerSelector::new("PATCH")),
+            "               ╭───────╮\n MAJOR │ MINOR │ PATCH │\n               ╰───────╯"
+        );
+        // Unknown value defaults to MINOR
+        assert_eq!(
+            format!("{}", SemVerSelector::new("unknown")),
+            "       ╭───────╮       \n MAJOR │ MINOR │ PATCH \n       ╰───────╯       "
+        );
     }
 }

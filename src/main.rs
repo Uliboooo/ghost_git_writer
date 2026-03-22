@@ -383,9 +383,9 @@ async fn main() -> Result<(), Error> {
                 println!("{}", res.0);
                 Ok(())
             } else {
-                let s = cli_helper::Printer::from(res.0.trim());
+                let s = cli_helper::SemVerSelector::new(res.0.trim());
                 println!(
-                    "shoud increase at \n{s}\nreasons:\n{}",
+                    "should increase at\n{s}\nreasons:\n{}",
                     res.1.unwrap_or(String::new()).trim()
                 );
                 Ok(())
