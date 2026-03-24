@@ -6,7 +6,49 @@ on:
       - main
 
 jobs:
-  build-and-release:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            bin: your-app
+            suffix: ""
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            bin: your-app
+            suffix: ""
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bin: your-app
+            suffix: ".exe"
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Rename binary
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/${{ matrix.bin }}${{ matrix.suffix }} \
+             dist/${{ matrix.bin }}-${{ matrix.target }}${{ matrix.suffix }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bin-${{ matrix.target }}
+          path: dist/
+
+  release:
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -14,14 +56,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Get version from Cargo.toml
+      - name: Get version
         id: version
         run: |
           VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/.*= *"\(.*\)"/\1/')
           echo "version=v$VERSION" >> $GITHUB_OUTPUT
-          echo "Detected version: v$VERSION"
 
-      - name: Check if tag already exists
+      - name: Check tag
         id: tag_check
         run: |
           if git ls-remote --tags origin | grep -q "refs/tags/${{ steps.version.outputs.version }}$"; then
@@ -30,13 +71,12 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Setup Rust
+      - name: Download artifacts
         if: steps.tag_check.outputs.exists == 'false'
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Build release
-        if: steps.tag_check.outputs.exists == 'false'
-        run: cargo build --release
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+          merge-multiple: true  # 全artifactをdist/に平坦化
 
       - name: Create tag
         if: steps.tag_check.outputs.exists == 'false'
@@ -51,6 +91,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.version }}
-          name: Release ${{ steps.version.outputs.version }}
-          files: target/release/<your-binary-name>  # ← ここを変更
           generate_release_notes: true
+          files: dist/*
