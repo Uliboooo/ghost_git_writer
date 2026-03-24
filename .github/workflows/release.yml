@@ -12,15 +12,15 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            bin: your-app
+            bin: ghost_git_writer
             suffix: ""
           - os: macos-latest
             target: aarch64-apple-darwin
-            bin: your-app
+            bin: ghost_git_writer
             suffix: ""
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            bin: your-app
+            bin: ghost_git_writer
             suffix: ".exe"
 
     runs-on: ${{ matrix.os }}
