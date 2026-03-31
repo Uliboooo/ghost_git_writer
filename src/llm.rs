@@ -2,11 +2,13 @@ use crate::cli_helper::Spinner;
 use crate::config;
 use derive_getters::Getters;
 use llm_api_rs::{
-    self, LlmProvider,
+    LlmProvider,
     core::{ChatCompletionRequest, ChatMessage},
-    providers::{Anthropic, DeepSeek, Gemini, OpenAI},
+    providers::{Anthropic, DeepSeek, OpenAI},
 };
 use ollama_rs::{Ollama, generation::completion::request::GenerationRequest};
+use reqwest::header::CONTENT_TYPE;
+use serde_json::json;
 use std::fmt::Display;
 
 #[derive(Debug)]
@@ -18,6 +20,8 @@ pub enum Error {
     // CliHelper(String),
     OllamaE(ollama_rs::error::OllamaError),
     Conf(config::Error),
+    InvalidResponse,
+    ApiErr(reqwest::Error),
 }
 
 impl Display for Error {
@@ -27,20 +31,14 @@ impl Display for Error {
             Error::FailedGetAPIKey => write!(f, "failed to get api key"),
             Error::FailedGetBaseURL => write!(f, "failed to get base url"),
             Error::ChatCompletion(e) => write!(f, "chat completion error: {}", e),
-            // Error::CliHelper(e) => write!(f, "cli helper error: {}", e),
             Error::OllamaE(e) => write!(f, "ollama error: {}", e),
-            Error::Conf(error) => write!(f, "config error {error}"),
+            Error::Conf(e) => write!(f, "config error {e}"),
+            Error::InvalidResponse => write!(f, "invalid response"),
+            Error::ApiErr(e) => write!(f, "api error: {e}"),
         }
     }
 }
 
-// impl From<cli_helper::Error> for Error {
-//     fn from(e: cli_helper::Error) -> Self {
-//         match e {
-//             cli_helper::Error::Io(io_err) => Error::CliHelper(io_err.to_string()),
-//         }
-//     }
-// }
 impl From<ollama_rs::error::OllamaError> for Error {
     fn from(value: ollama_rs::error::OllamaError) -> Self {
         Self::OllamaE(value)
@@ -140,11 +138,87 @@ impl LlmReqInfo {
     }
 }
 
+fn make_gemini_body(model: String, prompt: String) -> serde_json::Value {
+    json!({
+        "model": model,
+        "contents": [{
+            "parts": [
+            {
+                "text": prompt
+            }
+            ]
+        }]
+    })
+}
+
+// {
+// "candidates": [
+//   {
+//     "content": {
+//       "parts": [
+//         {
+//           "text": "text",
+//           "thoughtSignature": ""
+//         }
+//       ],
+//       "role": "model"
+//     },
+//     "finishReason": "STOP",
+//     "index": 0
+//   }
+// ],
+// "usageMetadata": {
+//   "promptTokenCount": 11853,
+//   "candidatesTokenCount": 415,
+//   "totalTokenCount": 12986,
+//   "promptTokensDetails": [
+//     {
+//       "modality": "TEXT",
+//       "tokenCount": 11853
+//     }
+//   ],
+//   "thoughtsTokenCount": 718
+// },
+// "modelVersion": "gemini-3-flash-preview",
+// "responseId": "96TLaaPKOKnY2roPx9DxCQ"
+// }
+
+use serde::{Deserialize, Serialize};
+
+// Discard any content other than text.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GeminiResp {
+    pub candidates: Vec<Candidate>,
+}
+
+impl GeminiResp {
+    fn get_resp_text(&self) -> Option<String> {
+        self.candidates
+            .first()
+            .and_then(|f| f.content.parts.first().map(|f| f.text.to_string()))
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Candidate {
+    pub content: Content,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Content {
+    pub parts: Vec<Part>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Part {
+    pub text: String,
+}
+
 pub async fn call_llm<T: AsRef<str>>(llm_info: LlmReqInfo, prompt: T) -> Result<String, Error> {
     let spinner = Spinner::new("Calling LLM...");
-    let result = async {
-        // llm_api_rs isn't support ollama
-        if llm_info.provider() == &Provider::Ollama {
+    let api = llm_info.resolve_api_key()?;
+    let res = match llm_info.provider {
+        Provider::Ollama => {
             let base_url = llm_info.clone().base_url.ok_or(Error::FailedGetBaseURL)?;
             let o_res = Ollama::new(base_url.0, base_url.1);
             let res = o_res
@@ -157,11 +231,35 @@ pub async fn call_llm<T: AsRef<str>>(llm_info: LlmReqInfo, prompt: T) -> Result<
                 Ok(v) => Ok(v.response.to_string()),
                 Err(e) => Err(Error::OllamaE(e)),
             }
-        } else {
-            let api = llm_info.resolve_api_key()?;
+        }
+        Provider::Gemini => {
+            let client = reqwest::Client::new();
+
+            // let url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent".to_string();
+            let url = format!(
+                "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent",
+                llm_info.model
+            );
+            let body = make_gemini_body(llm_info.model, prompt.as_ref().to_string());
+
+            let resp = client
+                .post(url)
+                .header("x-goog-api-key", api)
+                .header(CONTENT_TYPE, "application/json")
+                .json(&body)
+                .send()
+                .await
+                .map_err(Error::ApiErr)?
+                // .unwrap()
+                .json::<GeminiResp>()
+                .await
+                .map_err(Error::ApiErr)?;
+
+            resp.get_resp_text().ok_or(Error::InvalidResponse)
+        }
+        _ => {
             let client: Box<dyn LlmProvider + Send> = match llm_info.provider {
                 Provider::OpenAI => Box::new(OpenAI::new(api)),
-                Provider::Gemini => Box::new(Gemini::new(api)),
                 Provider::Anthropic => Box::new(Anthropic::new(api)),
                 Provider::DeepSeek => Box::new(DeepSeek::new(api)),
                 _ => return Err(Error::NotSuppoeredProvider),
@@ -188,8 +286,8 @@ pub async fn call_llm<T: AsRef<str>>(llm_info: LlmReqInfo, prompt: T) -> Result<
                 Err(e) => Err(Error::ChatCompletion(e.to_string())),
             }
         }
-    }
-    .await;
+    };
+    let result = async { res }.await;
     spinner.stop("LLM call finished.");
     result
 }
