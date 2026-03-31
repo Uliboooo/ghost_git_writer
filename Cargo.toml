@@ -33,4 +33,6 @@ easy_storage = "0.4.*"
 indicatif = "0.18.*"
 unicode-width = "0.2.1"
 url = "2.5.7"
+reqwest = { version = "0.12.*", features = ["json"] }
+serde_json = "1.0.*"
 atty = "0.2.14"

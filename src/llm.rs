@@ -7,7 +7,11 @@ use llm_api_rs::{
     providers::{Anthropic, DeepSeek, Gemini, OpenAI},
 };
 use ollama_rs::{Ollama, generation::completion::request::GenerationRequest};
+use reqwest::header::HeaderMap;
+use serde_json::json;
 use std::fmt::Display;
+
+const ANTHROPIC_DEFAULT_MAX_TOKENS: u32 = 1000;
 
 #[derive(Debug)]
 pub enum Error {
@@ -140,6 +144,107 @@ impl LlmReqInfo {
     }
 }
 
+/// Build the raw HTTP URL, headers, and JSON body for a provider's chat completion endpoint.
+fn build_raw_request(
+    llm_info: &LlmReqInfo,
+    api: &str,
+    prompt: &str,
+) -> Result<(String, HeaderMap, serde_json::Value), Error> {
+    let mut headers = HeaderMap::new();
+    let url;
+    let body;
+
+    match llm_info.provider() {
+        Provider::OpenAI => {
+            url = "https://api.openai.com/v1/chat/completions".to_string();
+            headers.insert(
+                reqwest::header::AUTHORIZATION,
+                format!("Bearer {api}")
+                    .parse()
+                    .map_err(|_| Error::FailedGetAPIKey)?,
+            );
+            body = json!({
+                "model": llm_info.model(),
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": llm_info.temp(),
+                "max_tokens": llm_info.max_tokens(),
+            });
+        }
+        Provider::Gemini => {
+            url = format!(
+                "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
+                llm_info.model(),
+                api
+            );
+            body = json!({
+                "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+                "generation_config": {
+                    "temperature": llm_info.temp(),
+                    "maxOutputTokens": llm_info.max_tokens(),
+                }
+            });
+        }
+        Provider::Anthropic => {
+            url = "https://api.anthropic.com/v1/messages".to_string();
+            headers.insert(
+                reqwest::header::HeaderName::from_static("x-api-key"),
+                api.parse().map_err(|_| Error::FailedGetAPIKey)?,
+            );
+            headers.insert(
+                reqwest::header::HeaderName::from_static("anthropic-version"),
+                "2023-06-01".parse().map_err(|_| Error::ChatCompletion("header".to_string()))?,
+            );
+            body = json!({
+                "model": llm_info.model(),
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": llm_info.max_tokens().unwrap_or(ANTHROPIC_DEFAULT_MAX_TOKENS),
+                "temperature": llm_info.temp(),
+            });
+        }
+        Provider::DeepSeek => {
+            url = "https://api.deepseek.com/v1/chat/completions".to_string();
+            headers.insert(
+                reqwest::header::AUTHORIZATION,
+                format!("Bearer {api}")
+                    .parse()
+                    .map_err(|_| Error::FailedGetAPIKey)?,
+            );
+            body = json!({
+                "model": llm_info.model(),
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": llm_info.temp(),
+                "max_tokens": llm_info.max_tokens(),
+            });
+        }
+        Provider::Ollama => return Err(Error::NotSuppoeredProvider),
+    }
+
+    Ok((url, headers, body))
+}
+
+/// Extract the assistant message content from a raw JSON response body.
+fn extract_content(provider: &Provider, raw: &str) -> Result<String, Error> {
+    let v: serde_json::Value = serde_json::from_str(raw)
+        .map_err(|e| Error::ChatCompletion(format!("Deserialization error: {e}")))?;
+
+    let content = match provider {
+        Provider::OpenAI | Provider::DeepSeek => {
+            v["choices"][0]["message"]["content"].as_str().map(str::to_string)
+        }
+        Provider::Gemini => v["candidates"][0]["content"]["parts"][0]["text"]
+            .as_str()
+            .map(str::to_string),
+        Provider::Anthropic => v["content"][0]["text"].as_str().map(str::to_string),
+        Provider::Ollama => unreachable!("Ollama uses a separate code path and should never reach here"),
+    };
+
+    content.ok_or_else(|| {
+        Error::ChatCompletion(format!(
+            "Could not extract content from response: {raw}"
+        ))
+    })
+}
+
 pub async fn call_llm<T: AsRef<str>>(
     llm_info: LlmReqInfo,
     prompt: T,
@@ -171,6 +276,30 @@ pub async fn call_llm<T: AsRef<str>>(
                 Ok(v) => Ok(v.response.to_string()),
                 Err(e) => Err(Error::OllamaE(e)),
             }
+        } else if debug {
+            // In debug mode: use reqwest directly to capture and print the raw JSON response.
+            let api = llm_info.resolve_api_key()?;
+            let (url, headers, body) = build_raw_request(&llm_info, &api, prompt.as_ref())?;
+
+            let client = reqwest::Client::new();
+            let response = client
+                .post(&url)
+                .headers(headers)
+                .json(&body)
+                .send()
+                .await
+                .map_err(|e| Error::ChatCompletion(e.to_string()))?;
+
+            let raw_body = response
+                .text()
+                .await
+                .map_err(|e| Error::ChatCompletion(e.to_string()))?;
+
+            eprintln!("[DEBUG] === Raw JSON Response ===");
+            eprintln!("{raw_body}");
+            eprintln!("[DEBUG] ========================");
+
+            extract_content(llm_info.provider(), &raw_body)
         } else {
             let api = llm_info.resolve_api_key()?;
             let client: Box<dyn LlmProvider + Send> = match llm_info.provider {
@@ -193,28 +322,13 @@ pub async fn call_llm<T: AsRef<str>>(
 
             match client.chat_completion(request).await {
                 Ok(response) => {
-                    if debug {
-                        eprintln!("[DEBUG] === LLM Response ===");
-                        eprintln!("[DEBUG] Choices count: {}", response.choices.len());
-                        for (i, choice) in response.choices.iter().enumerate() {
-                            eprintln!("[DEBUG] Choice[{}]: {}", i, choice.message.content);
-                        }
-                        eprintln!("[DEBUG] ===================");
-                    }
                     if let Some(choice) = response.choices.first() {
                         Ok(choice.message.content.clone())
                     } else {
                         Ok(String::new())
                     }
                 }
-                Err(e) => {
-                    if debug {
-                        eprintln!("[DEBUG] === LLM Error ===");
-                        eprintln!("[DEBUG] Error: {e}");
-                        eprintln!("[DEBUG] ================");
-                    }
-                    Err(Error::ChatCompletion(e.to_string()))
-                }
+                Err(e) => Err(Error::ChatCompletion(e.to_string())),
             }
         }
     }
