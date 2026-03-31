@@ -33,6 +33,7 @@ pub async fn gen_commit_msg<T: AsRef<str>>(
     model: llm::LlmReqInfo,
     lang: Option<&T>,
     extra: Option<&T>,
+    debug: bool,
 ) -> Result<String, llm::Error> {
     let diff = diff.as_ref();
     let st = status.as_ref();
@@ -46,5 +47,5 @@ pub async fn gen_commit_msg<T: AsRef<str>>(
 
     let prompt = format!("Please in {lang}.\n{GEN_MSG_PMT}\nstauts: {st}\ndiff:{diff}.\n{extra}");
 
-    llm::call_llm(model, prompt).await
+    llm::call_llm(model, prompt, debug).await
 }

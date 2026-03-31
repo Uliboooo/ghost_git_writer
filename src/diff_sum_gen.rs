@@ -10,6 +10,7 @@ pub async fn sum_diff<T: AsRef<str>>(
     model: llm::LlmReqInfo,
     lang: Option<T>,
     extra: Option<T>,
+    debug: bool,
 ) -> Result<String, llm::Error> {
     let lang = helper::init_lang(lang);
     let st = status.as_ref();
@@ -18,5 +19,5 @@ pub async fn sum_diff<T: AsRef<str>>(
     let prompt =
         format!("Please in {lang}.\n{DEFAULT_PROMPT}\nstatus: {st}\ndiff: {diff}.\n{extra}");
 
-    llm::call_llm(model, prompt).await
+    llm::call_llm(model, prompt, debug).await
 }

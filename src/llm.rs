@@ -140,7 +140,21 @@ impl LlmReqInfo {
     }
 }
 
-pub async fn call_llm<T: AsRef<str>>(llm_info: LlmReqInfo, prompt: T) -> Result<String, Error> {
+pub async fn call_llm<T: AsRef<str>>(
+    llm_info: LlmReqInfo,
+    prompt: T,
+    debug: bool,
+) -> Result<String, Error> {
+    if debug {
+        eprintln!("[DEBUG] === LLM Request ===");
+        eprintln!("[DEBUG] Provider: {:?}", llm_info.provider());
+        eprintln!("[DEBUG] Model: {}", llm_info.model());
+        eprintln!("[DEBUG] Temperature: {:?}", llm_info.temp());
+        eprintln!("[DEBUG] Max tokens: {:?}", llm_info.max_tokens());
+        eprintln!("[DEBUG] Prompt:\n{}", prompt.as_ref());
+        eprintln!("[DEBUG] ==================");
+    }
+
     let spinner = Spinner::new("Calling LLM...");
     let result = async {
         // llm_api_rs isn't support ollama
@@ -179,13 +193,28 @@ pub async fn call_llm<T: AsRef<str>>(llm_info: LlmReqInfo, prompt: T) -> Result<
 
             match client.chat_completion(request).await {
                 Ok(response) => {
+                    if debug {
+                        eprintln!("[DEBUG] === LLM Response ===");
+                        eprintln!("[DEBUG] Choices count: {}", response.choices.len());
+                        for (i, choice) in response.choices.iter().enumerate() {
+                            eprintln!("[DEBUG] Choice[{}]: {}", i, choice.message.content);
+                        }
+                        eprintln!("[DEBUG] ===================");
+                    }
                     if let Some(choice) = response.choices.first() {
                         Ok(choice.message.content.clone())
                     } else {
                         Ok(String::new())
                     }
                 }
-                Err(e) => Err(Error::ChatCompletion(e.to_string())),
+                Err(e) => {
+                    if debug {
+                        eprintln!("[DEBUG] === LLM Error ===");
+                        eprintln!("[DEBUG] Error: {e}");
+                        eprintln!("[DEBUG] ================");
+                    }
+                    Err(Error::ChatCompletion(e.to_string()))
+                }
             }
         }
     }

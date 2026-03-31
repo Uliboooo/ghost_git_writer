@@ -49,6 +49,7 @@ pub async fn gen_readme<T: AsRef<str>, P: AsRef<Path>>(
     model: llm::LlmReqInfo,
     lang: Option<T>,
     extra: Option<T>,
+    debug: bool,
 ) -> Result<String, Error> {
     let lang = helper::init_lang(lang);
     let code_base = helper::load_codebase(path_list)?;
@@ -56,5 +57,5 @@ pub async fn gen_readme<T: AsRef<str>, P: AsRef<Path>>(
 
     let prompt = format!("Please in {lang}.\n{DEFAULT_PROMT} {code_base}.\n{extra}");
 
-    Ok(llm::call_llm(model, prompt).await?)
+    Ok(llm::call_llm(model, prompt, debug).await?)
 }

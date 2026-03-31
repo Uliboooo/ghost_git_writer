@@ -290,6 +290,7 @@ async fn main() -> Result<(), Error> {
     let root_options = cli.get_root_options();
     let lang = root_options.lang().as_ref();
     let extra = root_options.extra().as_ref();
+    let debug = *root_options.debug();
 
     let git_status = get_git_status(&work_path)?;
     //
@@ -311,7 +312,7 @@ async fn main() -> Result<(), Error> {
                 git::get_diff(diff_opt, &work_path)?
             };
 
-            let msg = commit_gen::gen_commit_msg(diff, git_status, model_info, lang, extra).await?;
+            let msg = commit_gen::gen_commit_msg(diff, git_status, model_info, lang, extra, debug).await?;
             let conti = || {
                 let mut tty = BufReader::new(File::open("/dev/tty").unwrap());
                 stdout().flush().unwrap();
@@ -345,7 +346,7 @@ async fn main() -> Result<(), Error> {
         cli::Commands::Readme(readme) => {
             let path_list = readme.export_path_list()?;
             let readme_content =
-                readme_gen::gen_readme(&path_list, model_info, lang, extra).await?;
+                readme_gen::gen_readme(&path_list, model_info, lang, extra, debug).await?;
             if *readme.get_root_options().oneline() {
                 println!("{readme_content}");
                 Ok(())
@@ -390,7 +391,7 @@ async fn main() -> Result<(), Error> {
             };
 
             let res =
-                diff_sum_gen::sum_diff(diff, git_status, model_info, lang.cloned(), extra.cloned())
+                diff_sum_gen::sum_diff(diff, git_status, model_info, lang.cloned(), extra.cloned(), debug)
                     .await?;
             if *diff_sum.get_root_options().oneline() {
                 println!("{res}");
@@ -410,7 +411,7 @@ async fn main() -> Result<(), Error> {
                 git::get_diff(diff_s, &work_path)?
             };
             let res =
-                which_sem::whichi_sem(diff, git_status, model_info, lang.cloned(), extra.cloned())
+                which_sem::whichi_sem(diff, git_status, model_info, lang.cloned(), extra.cloned(), debug)
                     .await?;
 
             if *which.get_root_options().oneline() {

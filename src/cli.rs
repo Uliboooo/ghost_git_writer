@@ -83,6 +83,9 @@ pub struct RootOptions {
 
     #[arg(long = "stdin", help = "use stdin as diff content")]
     stdin: bool,
+
+    #[arg(long = "debug", help = "print debug info (prompt sent and raw response)")]
+    debug: bool,
 }
 
 pub trait DiffOption {

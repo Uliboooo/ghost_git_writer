@@ -8,6 +8,7 @@ pub async fn whichi_sem<T: AsRef<str>>(
     model: llm::LlmReqInfo,
     lang: Option<T>,
     extra: Option<T>,
+    debug: bool,
 ) -> Result<(String, Option<String>), llm::Error> {
     let diff = diff.as_ref();
     let st = status.as_ref();
@@ -17,7 +18,7 @@ pub async fn whichi_sem<T: AsRef<str>>(
     let promt =
         format!("Please in {lang}.\n{DEFAULT_PROMT}\ngit status: {st}\ndiff: {diff}\n{extra}");
 
-    let res = llm::call_llm(model, promt).await?;
+    let res = llm::call_llm(model, promt, debug).await?;
 
     let res = res.split('|').collect::<Vec<_>>();
     let ress = if res.len() < 3 {
