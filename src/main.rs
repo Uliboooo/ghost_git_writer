@@ -385,7 +385,11 @@ async fn main() -> Result<(), Error> {
                 println!("{}", res.0);
                 Ok(())
             } else {
-                let part = res.0.trim().parse::<cli_helper::SemVerPart>().map_err(Error::InvalidSemVer)?;
+                let part = res
+                    .0
+                    .trim()
+                    .parse::<cli_helper::SemVerPart>()
+                    .map_err(Error::InvalidSemVer)?;
                 let s = cli_helper::SemVerSelector::new(part);
                 println!(
                     "should increase at\n{s}\nreasons:\n{}",
