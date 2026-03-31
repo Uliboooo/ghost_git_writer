@@ -45,7 +45,7 @@ enum Error {
     Rdm(readme_gen::Error),
     EnvVar,
     NotFoundHome,
-    NotFoundConfig,
+    NotFoundConfig(String),
     NotFoundLlmField,
     NotFoundSelectedModel,
     NotFoundDefaultModel,
@@ -119,14 +119,32 @@ impl Display for Error {
             Error::Git(error) => write!(f, "git error: {error}"),
             // Error::Cmt(error) => write!(f, "commit gen error: {error}"),
             Error::Rdm(error) => write!(f, "readme gen error: {error}"),
-            Error::NotFoundHome => write!(f, "not found home directory"),
-            Error::NotFoundConfig => write!(f, "not found config file"),
-            Error::NotFoundWorkFolder => write!(f, "not found work folder"),
+            Error::NotFoundHome => write!(
+                f,
+                "not found home directory. Please ensure the HOME environment variable is set."
+            ),
+            Error::NotFoundConfig(ctx) => write!(f, "not found config file. {ctx}"),
+            Error::NotFoundWorkFolder => write!(
+                f,
+                "not found work folder. Please verify the path passed with --path exists."
+            ),
             Error::Cancel => write!(f, "commit canceled"),
-            Error::EnvVar => write!(f, "failed get api key as env var. please set it."),
-            Error::NotFoundLlmField => write!(f, "not found llm field in config file"),
-            Error::NotFoundSelectedModel => write!(f, "not found selected model in config"),
-            Error::NotFoundDefaultModel => write!(f, "not found default model in config"),
+            Error::EnvVar => write!(
+                f,
+                "failed to get API key from environment variable. Please set the appropriate variable (e.g. GGW_GEMINI_API, GGW_OPENAI_API, GGW_ANTHROPIC_API, or GGW_DEEPSEEK_API)."
+            ),
+            Error::NotFoundLlmField => write!(
+                f,
+                "not found 'llms' field in config file. Please add an [llms] section to your config. See the config template for reference."
+            ),
+            Error::NotFoundSelectedModel => write!(
+                f,
+                "not found selected model alias in config. Please verify the alias exists under [llms.models] in your config file."
+            ),
+            Error::NotFoundDefaultModel => write!(
+                f,
+                "not found default model in config. Please set 'default_model' under the [llms] section of your config file."
+            ),
             Error::InvalidSemVer(s) => write!(f, "invalid SemVer part from LLM response: {s}"),
         }
     }
@@ -163,7 +181,13 @@ fn resolve_config_path<T: AsRef<Path>>(path: &Option<T>) -> Result<PathBuf, Erro
     } else if secondary.exists() {
         Ok(secondary)
     } else {
-        Err(Error::NotFoundConfig)
+        Err(Error::NotFoundConfig(format!(
+            "Searched at '{}' and '{}'. \
+            Please create a config file at one of those locations. \
+            You can use the bundled config_template.toml as a starting point.",
+            primary.display(),
+            secondary.display()
+        )))
     }
 }
 
@@ -200,15 +224,23 @@ fn resolve_model(
             // `-m gem2`
             None => match config {
                 Some(loaded_config) => loaded_config.llms().clone().ok_or(Error::NotFoundLlmField),
-                None => Err(Error::NotFoundConfig),
+                None => Err(Error::NotFoundConfig(
+                    "A config file is required to resolve model aliases. \
+                    Please create ~/.config/ggw/config.toml, or pass the model as \
+                    'provider/model' (e.g. `-m gemini/gemini-2.0-flash`).".to_string()
+                )),
             }?
             .get_model(v)
             .ok_or(Error::NotFoundSelectedModel),
         },
         // without mode arg
         None => match config {
-            Some(v) => v.llms().clone().ok_or(Error::NotFoundConfig),
-            None => Err(Error::NotFoundConfig),
+            Some(v) => v.llms().clone().ok_or(Error::NotFoundLlmField),
+            None => Err(Error::NotFoundConfig(
+                "No config file found and no model specified. \
+                Please create ~/.config/ggw/config.toml with a default_model, \
+                or specify a model with `-m provider/model` (e.g. `-m gemini/gemini-2.0-flash`).".to_string()
+            )),
         }?
         .get_default()
         .ok_or(Error::NotFoundDefaultModel),
