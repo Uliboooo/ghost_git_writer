@@ -227,7 +227,8 @@ fn resolve_model(
                 None => Err(Error::NotFoundConfig(
                     "A config file is required to resolve model aliases. \
                     Please create ~/.config/ggw/config.toml, or pass the model as \
-                    'provider/model' (e.g. `-m gemini/gemini-2.0-flash`).".to_string()
+                    'provider/model' (e.g. `-m gemini/gemini-2.0-flash`)."
+                        .to_string(),
                 )),
             }?
             .get_model(v)
@@ -239,7 +240,8 @@ fn resolve_model(
             None => Err(Error::NotFoundConfig(
                 "No config file found and no model specified. \
                 Please create ~/.config/ggw/config.toml with a default_model, \
-                or specify a model with `-m provider/model` (e.g. `-m gemini/gemini-2.0-flash`).".to_string()
+                or specify a model with `-m provider/model` (e.g. `-m gemini/gemini-2.0-flash`)."
+                    .to_string(),
             )),
         }?
         .get_default()
