@@ -7,7 +7,7 @@
 
     "baseUrl": ".",
     "paths": {
-      "@repo/core": ["packages/core/src"]
+      "@ggw/core": ["packages/core/src"]
     }
   },
   "include": [

@@ -7,3 +7,4 @@ if you have bun, give executable permission to `main.ts` and run it to run comma
 ## TODO
 
 - [ ] setup Lib
+- [ ] Tests
