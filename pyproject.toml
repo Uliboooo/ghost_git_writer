@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ghost-git-writer"
+version = "0.19.0"
+description = "Write a git commit message, README or diff summary using LLM services."
+readme = "README.md"
+license = { text = "MIT OR Apache-2.0" }
+authors = [{ name = "Uliboooo", email = "uliboulibo@gmail.com" }]
+requires-python = ">=3.11"
+dependencies = [
+    "click>=8.1",
+    "requests>=2.31",
+    "rich>=13.0",
+]
+
+[project.urls]
+Homepage     = "https://uliboooo.github.io/ghost_git_writer"
+Repository   = "https://github.com/Uliboooo/ghost_git_writer"
+
+[project.scripts]
+ggw = "ggw.cli:cli"
+
+[tool.hatch.build.targets.wheel]
+packages = ["ggw"]

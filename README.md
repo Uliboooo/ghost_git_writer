@@ -5,13 +5,29 @@
   Ghost git writer
 </h1>
 
-[![made-with-Rust](https://img.shields.io/badge/Made%20with-Rust-1f425f.svg)](https://www.rust-lang.org/)
+[![made-with-Python](https://img.shields.io/badge/Made%20with-Python-3776AB.svg)](https://www.python.org/)
 
 https://uliboooo.github.io/ghost_git_writer/
 
 **⚠️ beta ⚠️** and this doc is unstable to updating now...
 
 ## installing
+
+### Python (recommended)
+
+Requires Python 3.11+.
+
+```sh
+pip install ghost-git-writer
+```
+
+Or install directly from the repository:
+
+```sh
+pip install .
+```
+
+### Rust (legacy)
 
 ```zsh
 cargo install ghost_git_writer
@@ -43,7 +59,7 @@ ggw <COMMAND> [Options]
 ╭────────────────────────────────────────────────────────────╮
 │ feat: Set up Emacs with configuration migrated from Neovim │
 ╰────────────────────────────────────────────────────────────╯
-continue?(y/n)>y
+continue? [y/N]: y
 ```
 
 - Sub Commands

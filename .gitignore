@@ -4,3 +4,12 @@ win_ggw.zip
 /release/
 test_config.toml
 src_old/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+*.egg
