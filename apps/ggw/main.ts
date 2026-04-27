@@ -17,10 +17,10 @@ type Options = {
 }
 
 const program = new Command();
-program.name("ggw").description("Ghost git Writer - CLI tool for AI-powered commits").version("0.1.0");
+program.name("ggw").description("Ghost git Writer - CLI tool for AI-powered commits").version("0.2.0");
 program
   .option("-m, --model <Provider/Model_Name>", "LLM model to use (gemini)", "gemini/gemini-3-flash-preview")
-  .option("-c, --config <Path>", "path to config file")
+  // .option("-c, --config <Path>", "path to config file")
   .option("-l, --lang <Lang>", "select lang")
   .option("-p, --path <Path>", "work path. git project root path.")
   .option("-I, --stdin", "use sdtin as diff content")
@@ -43,12 +43,19 @@ const diff = await (async (use_stdin: boolean) => {
   }
 })(options.stdin);
 
+const git_st = await git.status();
+
 const prompt = `You are an assistant that writes Git commit messages.\
 When code changes include modifications to documentation files (e.g., README.md, docs/), ignore those changes and generate the commit message based solely on source code changes.\
 Given a description of code changes, output only a single-line commit message in Conventional Commits format (e.g., \"feat:\", \"fix:\", \"docs:\", etc.).\
 Do not include any extra text, code blocks, or formatting. Only output the commit message.\
 git status info and diff changes:\
+status:
+${git_st}
+
+diff:
 ${diff}
+
 Please answer in ${lang}`
 
 const cmt_msg_p = callLLM(provider, model, prompt);
