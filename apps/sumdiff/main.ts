@@ -42,7 +42,7 @@ const diff = await (async (use_stdin: boolean) => {
   }
 })(options.stdin);
 
-const git_st = await git.status();
+const git_st = JSON.stringify(await git.status());
 
 const prompt = `summarize the git diff changes.
 List the key modifications, what was added, removed, or modified, and briefly explain their purpose or impact if possible.

@@ -43,7 +43,7 @@ const diff = await (async (use_stdin: boolean) => {
   }
 })(options.stdin);
 
-const git_st = await git.status();
+const git_st = JSON.stringify(await git.status());
 
 const prompt = `You are an assistant that writes Git commit messages.\
 When code changes include modifications to documentation files (e.g., README.md, docs/), ignore those changes and generate the commit message based solely on source code changes.\

@@ -43,7 +43,7 @@ const diff = await (async (use_stdin: boolean) => {
   }
 })(options.stdin);
 
-const git_st = await git.status();
+const git_st = JSON.stringify(await git.status());
 
 const prompt = `**Output 'SemVer field name' and 'the reason' separated by '|'. About version field name, only contain semver name (Major or Minor or Patch)** Must strictly adhere to this format: 'Minor | Reasons'. In Semantic Versioning, which field version should be incremented? Think with reference to the git diff data:
 
