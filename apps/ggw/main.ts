@@ -14,12 +14,19 @@ type Options = {
   path?: string;
   stdin: boolean;
   diff?: [string, string];
-}
+};
 
 const program = new Command();
-program.name("ggw").description("Ghost git Writer - CLI tool for AI-powered commits").version("0.2.0");
 program
-  .option("-m, --model <Provider/Model_Name>", "LLM model to use (gemini)", "gemini/gemini-3-flash-preview")
+  .name("ggw")
+  .description("Ghost git Writer - CLI tool for AI-powered commits")
+  .version("0.2.0");
+program
+  .option(
+    "-m, --model <Provider/Model_Name>",
+    "LLM model to use (gemini)",
+    "gemini/gemini-3-flash-preview",
+  )
   // .option("-c, --config <Path>", "path to config file")
   .option("-l, --lang <Lang>", "select lang")
   .option("-p, --path <Path>", "work path. git project root path.")
@@ -56,7 +63,7 @@ ${git_st}
 diff:
 ${diff}
 
-Please answer in ${lang}`
+Please answer in ${lang}`;
 
 const cmt_msg_p = callLLM(provider, model, prompt);
 
@@ -80,4 +87,3 @@ if (git_res == null) {
 } else {
   console.log("ok.");
 }
-
