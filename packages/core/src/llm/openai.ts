@@ -11,8 +11,8 @@ export async function call_openAI(model: string, prompt: string) {
     stream: true,
   });
   let buf = ""
-  for await (const Chunk of chatComp) {
-    buf += Chunk;
+  for await (const chunk of chatComp) {
+    buf += chunk.choices[0]?.delta?.content || "";
   }
   return buf;
 

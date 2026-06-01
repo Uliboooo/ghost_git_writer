@@ -33,12 +33,19 @@ const git_repo_path = options.path ?? process.cwd();
 
 const git = simpleGit(git_repo_path);
 
+const EXCLUDE_PATHS = [
+  ":(exclude)**/*.lock",
+  ":(exclude)**/*.lockb",
+  ":(exclude)**/package-lock.json",
+  ":(exclude)**/pnpm-lock.yaml",
+];
+
 const diff = await (async (use_stdin: boolean) => {
   if (use_stdin) {
     const input = await Bun.stdin.text();
     return input;
   } else {
-    return await git.diff(options.diff);
+    return await git.diff([...(options.diff ?? []), ...EXCLUDE_PATHS]);
   }
 })(options.stdin);
 
