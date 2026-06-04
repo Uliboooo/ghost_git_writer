@@ -2,7 +2,10 @@
 
 ## How to run
 
-if you have bun, give executable permission to `main.ts` and run it to run command because scripts use shebang.
+if you have bun, give executable permission to an app entrypoint and run it because scripts use shebang:
+- `apps/ggw/main.ts`
+- `apps/sumdiff/main.ts`
+- `apps/which-sem/main.ts`
 
 ## TODO
 

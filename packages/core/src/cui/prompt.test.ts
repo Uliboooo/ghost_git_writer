@@ -30,6 +30,16 @@ describe("prompt", () => {
       expect(output).toContain("│ line 1 │");
       expect(output).toContain("│ line 2 │");
     });
+
+    test("should pad shorter lines for multiline messages", () => {
+      const input = "long line\nshort";
+      const output = fmt_output(input);
+
+      expect(output).toContain("╭───────────╮");
+      expect(output).toContain("│ long line │");
+      expect(output).toContain("│ short     │");
+      expect(output).toContain("╰───────────╯");
+    });
   });
 
   describe("yes_no", () => {

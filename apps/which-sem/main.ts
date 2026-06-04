@@ -12,7 +12,7 @@ type Options = {
   lang?: string;
   path?: string;
   stdin: boolean;
-  diff?: [string, string];
+  diff?: string[];
   oneline: boolean;
 }
 

@@ -1,8 +1,12 @@
 import OpenAI from "openai";
 
 export async function call_openAI(model: string, prompt: string) {
+  const apiKey = process.env["OPENAI_API_KEY"];
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY is not set");
+  }
   const client = new OpenAI({
-    apiKey: process.env["OPENAI_API_KEY"],
+    apiKey,
   });
 
   const chatComp = await client.chat.completions.create({
@@ -17,4 +21,3 @@ export async function call_openAI(model: string, prompt: string) {
   return buf;
 
 }
-
