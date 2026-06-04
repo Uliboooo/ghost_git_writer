@@ -13,7 +13,7 @@ type Options = {
   lang?: string;
   path?: string;
   stdin: boolean;
-  diff?: [string, string];
+  diff?: string[];
 };
 
 const program = new Command();
@@ -30,7 +30,7 @@ program
   // .option("-c, --config <Path>", "path to config file")
   .option("-l, --lang <Lang>", "select lang")
   .option("-p, --path <Path>", "work path. git project root path.")
-  .option("-I, --stdin", "use sdtin as diff content")
+  .option("-I, --stdin", "use stdin as diff content")
   .option("-D, --diff <Commit or branch...>", "diff range");
 program.parse();
 

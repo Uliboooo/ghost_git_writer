@@ -1,6 +1,5 @@
 {
   "name": "ghost_git_writer_bun",
-  "module": "index.ts",
   "type": "module",
   "private": true,
   "devDependencies": {

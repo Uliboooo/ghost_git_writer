@@ -12,17 +12,17 @@ type Options = {
   lang?: string;
   path?: string;
   stdin: boolean;
-  diff?: [string, string];
+  diff?: string[];
 }
 
 const program = new Command();
-program.name("ggw").description("Ghost git Writer - CLI tool for AI-powered commits").version("0.1.0");
+program.name("sumdiff").description("Ghost git Writer - summarize git diff changes").version("0.1.0");
 program
   .option("-m, --model <Provider/Model_Name>", "LLM model to use (gemini)", "gemini/gemini-3-flash-preview")
   // .option("-c, --config <Path>", "path to config file")
   .option("-l, --lang <Lang>", "select lang")
   .option("-p, --path <Path>", "work path. git project root path.")
-  .option("-I, --stdin", "use sdtin as diff content")
+  .option("-I, --stdin", "use stdin as diff content")
   .option("-D, --diff <Commit or branch...>", "diff range");
 program.parse();
 
@@ -61,7 +61,7 @@ ${git_st}
 diff:
 ${diff}
 
-Please answer in ${lang}.;
+Please answer in ${lang}.
 `
 
 const cmt_msg_p = callLLM(provider, model, prompt);
@@ -69,4 +69,3 @@ const cmt_msg_p = callLLM(provider, model, prompt);
 const cmt_msg = await spinner(cmt_msg_p, `Calling ${model} ...`);
 
 console.log(cmt_msg);
-

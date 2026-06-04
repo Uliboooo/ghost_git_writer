@@ -13,14 +13,16 @@ export async function yes_no(prompt: string) {
 }
 
 export function fmt_output(s: string) {
-  const l = s.length;
   const padding = 2;
-  const bar = "─".repeat(l + padding);
+  const lines = s.split("\n");
+  const maxLineLength = lines.reduce((max, line) => Math.max(max, line.length), 0);
+  const bar = "─".repeat(maxLineLength + padding);
   const top_bar = "╭" + bar + "╮";
   const bottom_bar = "╰" + bar + "╯";
 
-  const boddys = s.split("\n").map(line => `│ ${line} │`).join("\n");
+  const boddys = lines
+    .map(line => `│ ${line.padEnd(maxLineLength, " ")} │`)
+    .join("\n");
 
   return `${top_bar}\n${boddys}\n${bottom_bar}`;
 }
-
