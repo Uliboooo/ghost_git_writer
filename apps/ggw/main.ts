@@ -2,10 +2,10 @@
 
 import { Command } from "commander";
 import simpleGit from "simple-git";
-import { callLLM } from "packages/core/src/llm";
-import { spinner } from "packages/core/src/cui/spinner";
-import { fmt_output, yes_no } from "packages/core/src/cui/prompt";
-import { model_name_resolver } from "packages/core/src/cli/parser";
+import { callLLM } from "@ggw/core/llm";
+import { spinner } from "@ggw/core/cui/spinner";
+import { fmt_output, yes_no } from "@ggw/core/cui/prompt";
+import { model_name_resolver } from "@ggw/core/cli/parser";
 
 type Options = {
   model: string;
@@ -40,6 +40,11 @@ const [provider, model] = model_name_resolver(options.model);
 const git_repo_path = options.path ?? process.cwd();
 
 const git = simpleGit(git_repo_path);
+
+if (!(await git.checkIsRepo())) {
+  console.error(`Error: ${git_repo_path} is not a git repository.`);
+  process.exit(1);
+}
 
 const EXCLUDE_PATHS = [
   ":(exclude)**/*.lock",

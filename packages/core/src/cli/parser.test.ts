@@ -17,8 +17,13 @@ describe("parser", () => {
     });
 
     test("should handle models without provider", () => {
-      // Current implementation returns default if no slash is present
-      expect(model_name_resolver("gpt-4")).toEqual(["gemini", "gemini-3-flash-preview"]);
+      expect(model_name_resolver("gpt-4o")).toEqual(["openai", "gpt-4o"]);
+      expect(model_name_resolver("custom-model")).toEqual(["gemini", "custom-model"]);
+    });
+
+    test("should handle provider only", () => {
+      expect(model_name_resolver("openai")).toEqual(["openai", "gpt-4o"]);
+      expect(model_name_resolver("gemini")).toEqual(["gemini", "gemini-3-flash-preview"]);
     });
   });
 });
