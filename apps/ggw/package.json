@@ -1,0 +1,8 @@
+{
+  "name": "@ggw/app-ggw",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@ggw/core": "workspace:*"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "@which-sem/app-which-sem",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@ggw/core": "workspace:*"
+  }
+}

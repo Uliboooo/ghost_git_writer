@@ -1,0 +1,8 @@
+{
+  "name": "@sumdiff/app-sumdiff",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@ggw/core": "workspace:*"
+  }
+}
