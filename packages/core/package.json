@@ -1,0 +1,9 @@
+{
+  "name": "@ggw/core",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    "types": "./src/index.ts",
+    "default": "./src/index.ts"
+  }
+}
