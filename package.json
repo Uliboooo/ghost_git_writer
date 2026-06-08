@@ -1,0 +1,28 @@
+{
+  "name": "ghost_git_writer_bun",
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "scripts": {
+    "test": "bun test",
+    "build": "bun run build:ggw && bun run build:sumdiff && bun run build:which-sem",
+    "build:ggw": "bun build ./apps/ggw/main.ts --outfile=dist/ggw --compile",
+    "build:sumdiff": "bun build ./apps/sumdiff/main.ts --outfile=dist/sumdiff --compile",
+    "build:which-sem": "bun build ./apps/which-sem/main.ts --outfile=dist/which-sem --compile"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@google/genai": "^1.50.1",
+    "commander": "^14.0.3",
+    "openai": "^6.34.0",
+    "simple-git": "^3.36.0"
+  }
+}

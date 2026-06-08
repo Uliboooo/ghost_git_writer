@@ -1,0 +1,31 @@
+{
+  "name": "@ggw/core",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./llm": {
+      "types": "./src/llm/index.ts",
+      "default": "./src/llm/index.ts"
+    },
+    "./cui/spinner": {
+      "types": "./src/cui/spinner.ts",
+      "default": "./src/cui/spinner.ts"
+    },
+    "./cui/prompt": {
+      "types": "./src/cui/prompt.ts",
+      "default": "./src/cui/prompt.ts"
+    },
+    "./cli/parser": {
+      "types": "./src/cli/parser.ts",
+      "default": "./src/cli/parser.ts"
+    },
+    "./cui/semver": {
+      "types": "./src/cui/semver.ts",
+      "default": "./src/cui/semver.ts"
+    }
+  }
+}
