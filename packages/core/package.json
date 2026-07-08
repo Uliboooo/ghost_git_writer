@@ -26,6 +26,10 @@
     "./cui/semver": {
       "types": "./src/cui/semver.ts",
       "default": "./src/cui/semver.ts"
+    },
+    "./split": {
+      "types": "./src/split/index.ts",
+      "default": "./src/split/index.ts"
     }
   }
 }

@@ -6,6 +6,7 @@ import { callLLM } from "@ggw/core/llm";
 import { spinner } from "@ggw/core/cui/spinner";
 import { fmt_output, yes_no } from "@ggw/core/cui/prompt";
 import { model_name_resolver } from "@ggw/core/cli/parser";
+import { splitDiffIntoCommits } from "@ggw/core/split";
 
 type Options = {
   model: string;
@@ -14,6 +15,7 @@ type Options = {
   path?: string;
   stdin: boolean;
   diff?: string[];
+  split: boolean;
 };
 
 const program = new Command();
@@ -31,7 +33,11 @@ program
   .option("-l, --lang <Lang>", "select lang")
   .option("-p, --path <Path>", "work path. git project root path.")
   .option("-I, --stdin", "use stdin as diff content")
-  .option("-D, --diff <Commit or branch...>", "diff range");
+  .option("-D, --diff <Commit or branch...>", "diff range")
+  .option(
+    "-s, --split",
+    "split semantically different changes into separate commits",
+  );
 program.parse();
 
 const options = program.opts<Options>();
@@ -62,7 +68,47 @@ const diff = await (async (use_stdin: boolean) => {
   }
 })(options.stdin);
 
-const git_st = JSON.stringify(await git.status());
+const status = await git.status();
+const git_st = JSON.stringify(status);
+
+if (options.split) {
+  const changed_files = status.files.map((f) => f.path);
+  if (changed_files.length === 0) {
+    console.error("No changes to commit.");
+    process.exit(1);
+  }
+
+  const groups = await spinner(
+    splitDiffIntoCommits({
+      provider,
+      model,
+      status: git_st,
+      diff,
+      files: changed_files,
+      lang,
+    }),
+    `Calling ${model} ...`,
+  );
+
+  const plan = groups
+    .map(
+      (g, i) => `[${i + 1}] ${g.message}\n    ${g.files.join("\n    ")}`,
+    )
+    .join("\n");
+  console.log(fmt_output(plan));
+
+  if (!(await yes_no(`create ${groups.length} commit(s) as above?`))) {
+    console.error("cancelled.");
+    process.exit(1);
+  }
+
+  for (const g of groups) {
+    await git.add(g.files);
+    await git.commit(g.message);
+  }
+  console.log("ok.");
+  process.exit(0);
+}
 
 const prompt = `You are an assistant that writes Git commit messages.\
 When code changes include modifications to documentation files (e.g., README.md, docs/), ignore those changes and generate the commit message based solely on source code changes.\
