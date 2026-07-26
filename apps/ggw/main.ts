@@ -20,12 +20,12 @@ const program = new Command();
 program
   .name("ggw")
   .description("Ghost git Writer - CLI tool for AI-powered commits")
-  .version("0.2.0");
+  .version("0.3.0");
 program
   .option(
     "-m, --model <Provider/Model_Name>",
     "LLM model to use (gemini)",
-    "gemini/gemini-3-flash-preview",
+    "gemini/gemini-3.5-flash",
   )
   // .option("-c, --config <Path>", "path to config file")
   .option("-l, --lang <Lang>", "select lang")
