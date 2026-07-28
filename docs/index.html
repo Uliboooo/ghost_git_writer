@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ghost Git Writer (ggw)</title>
+  <meta name="description"
+    content="ggw — a small CLI that writes git commit messages, diff summaries, and SemVer suggestions with an LLM.">
+  <link rel="icon" type="image/svg+xml" href="./icon.svg">
+  <style>
+    :root {
+      --bg: #fdfdfb;
+      --fg: #24272e;
+      --muted: #6b7180;
+      --accent: #5a60b8;
+      --accent-soft: #ecedf8;
+      --line: #e4e5ea;
+      --code-bg: #f4f4f6;
+      --term-bg: #24272e;
+      --term-fg: #e8e9ec;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1c1e24;
+        --fg: #e8e9ec;
+        --muted: #9aa0ad;
+        --accent: #b3b7e2;
+        --accent-soft: #2a2d3d;
+        --line: #33363f;
+        --code-bg: #272a33;
+        --term-bg: #14161a;
+        --term-fg: #e8e9ec;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.7;
+    }
+
+    main {
+      max-width: 42rem;
+      margin: 0 auto;
+      padding: 3rem 1.25rem 4rem;
+    }
+
+    header.site {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 2.5rem;
+    }
+
+    header.site img {
+      width: 2.5rem;
+      height: 2.5rem;
+    }
+
+    header.site .name {
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    header.site a.gh {
+      margin-left: auto;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 0.25rem 0.7rem;
+    }
+
+    header.site a.gh:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    h1 {
+      font-size: 1.9rem;
+      line-height: 1.35;
+      margin: 0 0 0.75rem;
+      letter-spacing: -0.01em;
+    }
+
+    .lead {
+      color: var(--muted);
+      margin: 0 0 2rem;
+    }
+
+    h2 {
+      font-size: 1.15rem;
+      margin: 2.8rem 0 0.8rem;
+      padding-top: 1.2rem;
+      border-top: 1px solid var(--line);
+    }
+
+    code,
+    pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.875em;
+    }
+
+    code {
+      background: var(--code-bg);
+      border-radius: 4px;
+      padding: 0.1em 0.4em;
+    }
+
+    pre {
+      background: var(--term-bg);
+      color: var(--term-fg);
+      border-radius: 8px;
+      padding: 1rem 1.2rem;
+      overflow-x: auto;
+      line-height: 1.6;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+    }
+
+    pre .p {
+      color: var(--accent);
+    }
+
+    pre .c {
+      color: #8b93a5;
+    }
+
+    .tools {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 0.6rem;
+    }
+
+    .tools li {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.7rem 1rem;
+    }
+
+    .tools .t {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-weight: 600;
+      color: var(--accent);
+      margin-right: 0.5rem;
+    }
+
+    .tools .d {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 0.45rem 0.6rem;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    td:first-child {
+      white-space: nowrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.85rem;
+    }
+
+    .note {
+      background: var(--accent-soft);
+      border-radius: 8px;
+      padding: 0.7rem 1rem;
+      font-size: 0.92rem;
+    }
+
+    footer {
+      margin-top: 3.5rem;
+      padding-top: 1.2rem;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    footer a {
+      color: var(--muted);
+    }
+
+    a {
+      color: var(--accent);
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <header class="site">
+      <img src="./icon.svg" alt="Ghost Git Writer logo">
+      <span class="name">Ghost Git Writer</span>
+      <a class="gh" href="https://github.com/Uliboooo/ghost_git_writer">GitHub</a>
+    </header>
+
+    <h1>Let the ghost write your commits.</h1>
+    <p class="lead">
+      <code>ggw</code> is a small CLI that reads your <code>git diff</code> and asks an LLM
+      (Gemini or OpenAI) to write the commit message — then commits it for you, after a single
+      <code>y/n</code>. Built with TypeScript and Bun, shipped as standalone binaries.
+    </p>
+
+    <pre><code><span class="p">❯</span> ggw
+        ⠏ Calling gemini-3.5-flash ...
+
+        feat: add stdin diff input and diff range options
+
+        <span class="p">git commit as this message? (y/n)</span> y
+        ok.</code></pre>
+
+    <h2>Tools</h2>
+    <ul class="tools">
+      <li><span class="t">ggw</span><span class="d">generate a Conventional Commits message from the diff, confirm, and
+          commit</span></li>
+      <li><span class="t">sumdiff</span><span class="d">summarize what changed in a diff — additions, removals, and why
+          they matter</span></li>
+      <li><span class="t">which-sem</span><span class="d">suggest which SemVer part (major / minor / patch) the diff
+          should bump</span></li>
+    </ul>
+
+    <h2>Install</h2>
+    <p>Build single-file binaries with <a href="https://bun.sh">Bun</a>:</p>
+    <pre><code><span class="p">❯</span> git clone https://github.com/Uliboooo/ghost_git_writer
+        <span class="p">❯</span> cd ghost_git_writer
+        <span class="p">❯</span> bun install
+        <span class="p">❯</span> bun run build <span class="c"># → dist/ggw, dist/sumdiff, dist/which-sem</span></code>
+    </pre>
+    <p class="note">
+      Set <code>GEMINI_API_KEY</code> (or <code>OPENAI_API_KEY</code>) in your environment before running.
+    </p>
+
+    <h2>Options</h2>
+    <p>All three tools share the same flags:</p>
+    <table>
+      <tr>
+        <th>Flag</th>
+        <th>Description</th>
+      </tr>
+      <tr>
+        <td>-m, --model</td>
+        <td>LLM as <code>provider/model</code>, e.g. <code>gemini/gemini-3.5-flash</code> or <code>openai/…</code></td>
+      </tr>
+      <tr>
+        <td>-l, --lang</td>
+        <td>output language (default: English)</td>
+      </tr>
+      <tr>
+        <td>-p, --path</td>
+        <td>git project root (default: current directory)</td>
+      </tr>
+      <tr>
+        <td>-D, --diff</td>
+        <td>diff range — commits or branches</td>
+      </tr>
+      <tr>
+        <td>-I, --stdin</td>
+        <td>read the diff from stdin instead of git</td>
+      </tr>
+      <tr>
+        <td>-o, --oneline</td>
+        <td><code>which-sem</code> only: print just the SemVer part name</td>
+      </tr>
+    </table>
+    <pre><code><span class="p">❯</span> ggw -l Japanese -D main develop
+        <span class="p">❯</span> git diff HEAD~3 | sumdiff -I
+        <span class="p">❯</span> which-sem -o <span class="c"># → Minor</span></code></pre>
+
+    <footer>
+      MIT OR Apache-2.0 · <a href="https://github.com/Uliboooo/ghost_git_writer">Uliboooo/ghost_git_writer</a>
+    </footer>
+  </main>
+</body>
+
+</html>
