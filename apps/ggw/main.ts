@@ -22,7 +22,7 @@ const program = new Command();
 program
   .name("ggw")
   .description("Ghost git Writer - CLI tool for AI-powered commits")
-  .version("0.2.0");
+  .version("0.4.0");
 program
   .option(
     "-m, --model <Provider/Model_Name>",
@@ -91,9 +91,7 @@ if (options.split) {
   );
 
   const plan = groups
-    .map(
-      (g, i) => `[${i + 1}] ${g.message}\n    ${g.files.join("\n    ")}`,
-    )
+    .map((g, i) => `[${i + 1}] ${g.message}\n    ${g.files.join("\n    ")}`)
     .join("\n");
   console.log(fmt_output(plan));
 
